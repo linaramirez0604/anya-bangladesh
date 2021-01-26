@@ -75,24 +75,17 @@ local survey "ASQ Literacy Numeracy OS SS"
 foreach var of local survey{
 use "$output/Baseline `var'.dta", clear 
 merge 1:1 CHILD_ID using "$output/Midline `var'.dta"
-gen source="Attrited on Mid" if _merge==1
-replace source="New subject Mid" if _merge==2 & CT==1 
-replace source="Sibiling Mid" if _merge==2 & CT==2 
-replace source="Cousin Mid" if _merge==2 & CT==3 
-replace source="Merged Mid" if _merge==3
+gen source="attrited-mid" if _merge==1
+replace source="new-mid" if _merge==2 
+replace source="merged-mid" if _merge==3
 drop _merge 
 
 merge 1:1 CHILD_ID using "$output/Endline `var'.dta"
-replace source="Attrited on End" if _merge==1 & CT==1 
-replace source="Attrited on End (sibiling)" if _merge==1 & CT==2 
-replace source="Attrited on End (cousin)" if _merge==1 & CT==3 
-replace source="New subject End" if _merge==2 & CT==1 
-replace source="New Sibiling End" if _merge==2 & CT==2 
-replace source="New Cousin End" if _merge==2 & CT==3 
-replace source="Merged Base,mid and Endline" if _merge==3 & source=="Merged Mid" 
-replace source="Merged Base and Endline" if _merge==3 & missing(source)
-replace source="Merged Sibilings mid-end" if _merge==3 & CT==2
-replace source="Merged Cousin mid-end" if _merge==3 & CT==3
+replace source="attrited-end" if _merge==1 
+replace source="new-end" if _merge==2 
+replace source="merged-base-mid-end" if _merge==3 & source=="merged-mid"
+replace source="merged-mid-endline" if _merge==3 & source=="new-mid" 
+replace source="merged-base-end" if _merge==3 & missing(source)
 drop _merge 
 
 rename source source_`var'
@@ -120,15 +113,9 @@ local survey "PSRA Dial"
 foreach var of local survey{
 use "$output/Midline `var'.dta", clear
 merge 1:1 CHILD_ID using "$output/Endline `var'.dta"
-gen source="Attrited on End" if _merge==1 & CT==1 
-replace source="Attrited on End (sibiling)" if _merge==1 & CT==2 
-replace source="Attrited on End (cousin)" if _merge==1 & CT==3 
-replace source="New subject End" if _merge==2 & CT==1 
-replace source="New Sibiling End" if _merge==2 & CT==2 
-replace source="New Cousin End" if _merge==2 & CT==3  
-replace source="Merged Mid and Endline" if _merge==3 
-replace source="Merged Sibilings mid-end" if _merge==3 & CT==2
-replace source="Merged Cousin mid-end" if _merge==3 & CT==3
+gen source="attrited-end" if _merge==1 
+replace source="new-end" if _merge==2 
+replace source="merged-mid-end" if _merge==3 
 drop _merge 
 
 
@@ -303,7 +290,40 @@ label variable base_age_month "Age 1st February, 2017 (Baseline survey) in month
 label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 
 
-save "$output/Early childhood Development compiled.dta", replace
+
+*-------------------------------------------------------------------------------
+*					FURTHER ORGANIZING VARIABLES 
+*
+*------------------------------------------------------------------------------- 
+
+
+label define CT 1 "Project child" 2 "Sibiling" 3 "Cousin"
+label values CT CT 
+order  FAMILY_ID RECORD_ID CHILD_NUMBER CHILD_ID CT Gender num_stud_village, after(VILLAGE_ID)
+label var questionnaire "Tests completed by child"
+label var Gender "Gender" 
+order source_ASQ, after(questionnaire) 
+label var source_ASQ "Report of participation in base-mid-endline ASQ"
+rename source_Numeracy source_num 
+label var source_num "Report of participation base-mid-end numeracy"
+order source_num, after(end_asq_overall)
+rename source_Literacy source_lit
+label var source_lit "Report of participation base-mid-end literacy"
+order source_lit, after(end_lit_overall)
+order source_OS, after(end_os_overall)
+label var source_OS "Report of participation base-mid-end OS"
+order source_SS, after(end_ss_overall)
+label var source_SS "Report of participation base-mid-end SS"
+label var source_PSRA "Report of participation base-mid-end PSRA"
+label var source_Dial "Report of participation base-mid-end Dial"
+order end_D4 end_D4 source_Dial end_hv, after(mid_D4)
+rename Date_of_birth birthday 
+order mother*, after(father_education)
+label var b_date "Baseline date"
+label var base_date "Baseline date"
+
+
+save "$output/ECD_compiled.dta", replace
 erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
 
