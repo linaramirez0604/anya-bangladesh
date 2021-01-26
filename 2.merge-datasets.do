@@ -323,6 +323,8 @@ label var b_date "Baseline date"
 label var base_date "Baseline date"
 
 
+
+
 save "$output/ECD_compiled.dta", replace
 erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
