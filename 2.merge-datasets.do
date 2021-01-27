@@ -251,18 +251,25 @@ save "$output/Early childhood Development.dta", replace
 
 *Variable num_stud_village will report the number of students treated per village (10,20 or 30)
 
+
 *Only visit 
 use "$input/Midline Data/By home visit analysis/ecd_home_final.dta", clear
 
-keep  VILLAGE_ID treat_home
+keep  VILLAGE_ID RECORD_ID btype
 duplicates drop 
 
 
-merge 1:m VILLAGE_ID using "$output/Early childhood Development.dta"
-
-rename treat_home num_stud_village 
-label var num_stud_village "Number of student treated per village"
+merge 1:m VILLAGE_ID RECORD_ID using "$output/Early childhood Development.dta"
+drop if _merge==1 
+replace btype=4 if treat1==2 & btype==.
 drop _merge 
+
+
+
+rename btype child_treat_status
+
+label var child_treat_status "Children treatment status inside village"
+
 
 save "$output/temp.dta", replace  
 
@@ -270,15 +277,28 @@ save "$output/temp.dta", replace
 *Visit + Pre-school
 use "$input/Midline Data/By home visit analysis/ecd_home_PreK_FINAL.dta", clear
 
-keep  VILLAGE_ID ctype 
+keep  VILLAGE_ID RECORD_ID ctype 
 duplicates drop 
+merge 1:m VILLAGE_ID RECORD_ID using "$output/temp.dta"
+drop if _merge==1
+replace ctype=4 if treat1==3 & ctype==.
 
-merge 1:m VILLAGE_ID using "$output/temp.dta"
-replace num_stud_village=1 if ctype==1 
-replace num_stud_village=1 if ctype==2
-replace num_stud_village=1 if ctype==3
+replace child_treat_status=5 if ctype==1 
+replace child_treat_status=6 if ctype==2
+replace child_treat_status=7 if ctype==3
+replace child_treat_status=8 if ctype==4 
 drop ctype 
 drop _merge 
+
+*Control 
+replace child_treat_status=9 if treat1==4 
+
+label define child_treat_status 1 "HV-10 students-1 teacher" 2 "HV-20 students-2 teachers" 3 "HV-30 students-3 teachers" 4 "HV-didn't get HV" 5 "HV+preK-10 students-1 teacher" 6 "HV+preK-20 students-2 teachers" 7 "HV+preK-30 students-3 teachers" 8 "HV+preK-only gets school" 9 "Control"
+
+*Unsure of number 8.  
+
+label values child_treat_status child_treat_status 
+
 
 
 generate str b_date="01022017"
@@ -291,6 +311,93 @@ label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 
 
 
+
+*-------------------------------------------------------------------------------
+*					GENERATING homevisit2 preschoo2 both2 
+*
+*------------------------------------------------------------------------------- 
+
+*1 if Family ONLY got offered HV program, 0 if control or didn't get offered any program. 
+gen homevisit2=.
+recode homevisit2 .=1 if child_treat_status<=3 | (child_treat_status>=5 & child_treat_status<8)
+recode homevisit2 .=0 if child_treat_status==4 | child_treat_status==9
+label define homevisit2 1 "Offered HV program" 0 "Control, didn't get offered any program'"
+label values homevisit2 homevisit2
+
+
+*1 if Family ONLY got offered preschool (in HV+preschool village), 0 if got HV+preschool or control 
+gen preschool2=. 
+recode preschool2 .=1 if child_treat_status==8
+recode preschool2 .=0 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7 | child_treat_status==9
+label define preschool2 1 "Belongs to school+HV but only got school" 0 "childs who got both schoold & HV or control child"
+label values preschool2 preschool2
+
+*1 if Family gets offered both PreK and HV, 0 if gets one of both (in HV or HV+preK villages, only preK is excluded from the analysis)
+gen both2=. 
+recode both2 .=1 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7
+recode both2 .=0 if child_treat_status==1 | child_treat_status==2 | child_treat_status==3 | child_treat_status==8 | child_treat_status==9 
+label define both2 1 "Received both sch & HV" 0 "Control or received one type of treatment (in either HV or HV+preK villages)"
+label values both2 both2
+
+
+label variable homevisit2 "family was ONLY offered the HV program"
+label variable preschool2 "families who ONLY got offered the preschool (in HV+preK villages)"
+label variable both2 "families who got offered BOTH preschool and HV"
+
+save "$output/temp.dta", replace 
+
+
+
+*------------------------------------------------------------------------------------
+*					GENERATING HV_10, HV_20, HV_30 HVPK_10, HVPK_20, HVPK_30 
+*
+*------------------------------------------------------------------------------------
+
+*Villages with home visit 
+use "$input/Midline Data/By home visit analysis/ecd_home_final.dta", clear
+
+keep  VILLAGE_ID treat_home
+duplicates drop 
+
+merge 1:m VILLAGE_ID using "$output/temp.dta"
+drop if _merge==1 
+drop _merge 
+
+gen HV_10=1 if treat_home==1 
+replace HV_10=0 if treat1==4
+
+gen HV_20=1 if treat_home==2 
+replace HV_20=0 if treat1==4
+
+
+gen HV_30=1 if treat_home==3 
+replace HV_30=0 if treat1==4
+
+
+save "$output/temp.dta", replace 
+
+
+*Villages with  home visit + preK 
+
+use "$input/Midline Data/By home visit analysis/ecd_home_PreK_FINAL.dta", clear
+
+keep  VILLAGE_ID ctype 
+duplicates drop 
+
+merge 1:m VILLAGE_ID using "$output/temp.dta"
+drop if _merge==1
+
+gen HVPK_10=1 if ctype==1 
+replace HVPK_10=0 if treat1==4
+
+
+gen HVPK_20=1 if ctype==2
+replace HVPK_20=0 if treat1==4
+
+gen HVPK_30=1 if ctype==3
+replace HVPK_30=0 if treat1==4
+
+
 *-------------------------------------------------------------------------------
 *					FURTHER ORGANIZING VARIABLES 
 *
@@ -299,7 +406,7 @@ label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 
 label define CT 1 "Project child" 2 "Sibiling" 3 "Cousin"
 label values CT CT 
-order  FAMILY_ID RECORD_ID CHILD_NUMBER CHILD_ID CT Gender num_stud_village, after(VILLAGE_ID)
+order  FAMILY_ID RECORD_ID CHILD_NUMBER CHILD_ID CT Gender child_treat_status, after(VILLAGE_ID)
 label var questionnaire "Tests completed by child"
 label var Gender "Gender" 
 order source_ASQ, after(questionnaire) 
