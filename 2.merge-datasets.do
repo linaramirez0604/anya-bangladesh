@@ -27,8 +27,6 @@ NOTES:
 *------------------------------------------------------------------------------- 
 
 
-*global input "C:\Users\tanvi\Dropbox (Personal)\ECD_Data_documents_2020\Final Data_ALL rounds"
-*global output "C:\Users\tanvi\Dropbox (Personal)\ECD_Data_documents_2020\Final Data_ALL rounds\Compiled Dataset"
 
 
 if c(os)=="Windows" {
@@ -42,8 +40,9 @@ else if c(os)=="MacOSX" {
 
 global dropbox `c(pwd)'
 
-	gl input "$dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds"
-	gl output "$dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds/Compiled Dataset"
+	gl input "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
+	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/output"
+	gl results "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/results"
 
 	
 
@@ -54,10 +53,10 @@ global dropbox `c(pwd)'
 *------------------------------------------------------------------------------- 
 
 
-local  dataset `" "Baseline ASQ" "Baseline Literacy" "Baseline Numeracy" "Baseline OS" "Baseline SS" "Midline ASQ" "Midline Literacy" "Midline Numeracy" "Midline OS" "Midline SS" "Midline PSRA" "Midline Dial-4 & homevisit" "Endline ASQ" "Endline Literacy" "Endline Numeracy" "Endline OS" "Endline SS" "Endline PSRA" "Endline Dial-4 & homevisit" "'
+local  dataset `" "Baseline ASQ" "Baseline Literacy" "Baseline Numeracy" "Baseline OS" "Baseline SS" "Midline ASQ" "Midline Literacy" "Midline Numeracy" "Midline OS" "Midline SS" "Midline PSRA" "Endline ASQ" "Endline Literacy" "Endline Numeracy" "Endline OS" "Endline SS" "Endline PSRA" "'
 
 foreach var of local dataset {
-use "$output/`var'.dta", clear
+use "$input/`var'.dta", clear
 capture drop CT CB Gender
 merge 1:1 CHILD_ID using "$input/Child informations.dta", keepusing (CT CB Gender) keep(match) nogen 
 drop if missing(CT)
@@ -97,19 +96,9 @@ erase "$output/Endline `var'.dta"
 
 }
 
-*PSRA and Dial-4 & Homevisit are only in Midline and Endline
+*PSRA and are only in Midline and Endline
 
-use "$output/Midline Dial-4 & homevisit.dta", clear
-erase "$output/Midline Dial-4 & homevisit.dta"
-save "$output/Midline Dial.dta", replace 
-
-
-use "$output/Endline Dial-4 & homevisit.dta", clear
-erase "$output/Endline Dial-4 & homevisit.dta"
-save "$output/Endline Dial.dta", replace 
-
-
-local survey "PSRA Dial"
+local survey "PSRA"
 foreach var of local survey{
 use "$output/Midline `var'.dta", clear
 merge 1:1 CHILD_ID using "$output/Endline `var'.dta"
@@ -253,7 +242,7 @@ save "$output/Early childhood Development.dta", replace
 
 
 *Only visit 
-use "$input/Midline Data/By home visit analysis/ecd_home_final.dta", clear
+use "$input/ecd_home_final.dta", clear
 
 keep  VILLAGE_ID RECORD_ID btype
 duplicates drop 
@@ -275,7 +264,7 @@ save "$output/temp.dta", replace
 
 
 *Visit + Pre-school
-use "$input/Midline Data/By home visit analysis/ecd_home_PreK_FINAL.dta", clear
+use "$input/ecd_home_PreK_FINAL.dta", clear
 
 keep  VILLAGE_ID RECORD_ID ctype 
 duplicates drop 
@@ -295,7 +284,7 @@ replace child_treat_status=9 if treat1==4
 
 label define child_treat_status 1 "HV-10 students-1 teacher" 2 "HV-20 students-2 teachers" 3 "HV-30 students-3 teachers" 4 "HV-didn't get HV" 5 "HV+preK-10 students-1 teacher" 6 "HV+preK-20 students-2 teachers" 7 "HV+preK-30 students-3 teachers" 8 "HV+preK-only gets preK no HV" 9 "Control"
 
-*Unsure of number 8.  
+
 
 label values child_treat_status child_treat_status 
 
@@ -317,27 +306,53 @@ label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 *
 *------------------------------------------------------------------------------- 
 
+/*
 *1 if Family ONLY got offered HV program, 0 if control or didn't get offered any program. 
 gen homevisit2=.
-recode homevisit2 .=1 if child_treat_status<=3 | (child_treat_status>=5 & child_treat_status<8)
-recode homevisit2 .=0 if child_treat_status==4 | child_treat_status==9
+replace homevisit2=1 if child_treat_status<=3 | (child_treat_status>=5 & child_treat_status<8)
+replace homevisit2=0 if child_treat_status==4 | child_treat_status==9
 label define homevisit2 1 "Offered HV program" 0 "Control, didn't get offered any program'"
 label values homevisit2 homevisit2
 
 
 *1 if Family ONLY got offered preschool (in HV+preschool village), 0 if got HV+preschool or control 
 gen preschool2=. 
-recode preschool2 .=1 if child_treat_status==8
-recode preschool2 .=0 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7 | child_treat_status==9
+replace preschool2=1 if child_treat_status==8
+replace preschool2=0 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7 | child_treat_status==9
 label define preschool2 1 "Belongs to school+HV but only got school" 0 "childs who got both schoold & HV or control child"
 label values preschool2 preschool2
 
 *1 if Family gets offered both PreK and HV, 0 if gets one of both (in HV or HV+preK villages, only preK is excluded from the analysis)
 gen both2=. 
-recode both2 .=1 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7
-recode both2 .=0 if child_treat_status==1 | child_treat_status==2 | child_treat_status==3 | child_treat_status==8 | child_treat_status==9 
+replace both2=1 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7
+replace both2=0 if child_treat_status==1 | child_treat_status==2 | child_treat_status==3 | child_treat_status==8 | child_treat_status==9 
 label define both2 1 "Received both sch & HV" 0 "Control or received one type of treatment (in either HV or HV+preK villages)"
 label values both2 both2
+*/
+
+
+*1 if Family ONLY got offered HV program, 0 if control or didn't get offered any program. 
+gen homevisit2=.
+replace homevisit2=1 if child_treat_status<=3 
+replace homevisit2=0 if missing(homevisit2)
+label define homevisit2 1 "Offered HV program" 0 "Control, didn't get offered any program"
+label values homevisit2 homevisit2
+
+
+*1 if Family ONLY got offered preschool (in HV+preschool village), 0 if control or didn't get offered any program. 
+gen preschool2=. 
+replace preschool2=1 if child_treat_status==8
+replace preschool2=0 if missing(preschool2)
+label define preschool2 1 "Belongs to school+HV but only got school" 0 "Control, didn't get offered any program"
+label values preschool2 preschool2
+
+*1 if Family gets offered both PreK and HV, 0 if control or didn't get offered any program. 
+gen both2=. 
+replace both2=1 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7
+replace both2=0 if  missing(both2)
+label define both2 1 "Received both sch & HV" 0 "Control, didn't get offered any program"
+label values both2 both2
+
 
 
 label variable homevisit2 "family was ONLY offered the HV program"
@@ -354,7 +369,7 @@ save "$output/temp.dta", replace
 *------------------------------------------------------------------------------------
 
 *Villages with home visit 
-use "$input/Midline Data/By home visit analysis/ecd_home_final.dta", clear
+use "$input/ecd_home_final.dta", clear
 
 keep  VILLAGE_ID treat_home
 duplicates drop 
@@ -379,7 +394,7 @@ save "$output/temp.dta", replace
 
 *Villages with  home visit + preK 
 
-use "$input/Midline Data/By home visit analysis/ecd_home_PreK_FINAL.dta", clear
+use "$input/ecd_home_PreK_FINAL.dta", clear
 
 keep  VILLAGE_ID ctype 
 duplicates drop 
@@ -435,4 +450,7 @@ label var base_date "Baseline date"
 save "$output/ECD_compiled.dta", replace
 erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
+
+
+*END 
 

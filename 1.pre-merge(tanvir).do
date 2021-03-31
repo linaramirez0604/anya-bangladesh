@@ -42,7 +42,7 @@ else if c(os)=="MacOSX" {
 global dropbox `c(pwd)'
 
 	gl input "$dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds"
-	gl output "$dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds/Compiled Dataset"
+	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
 	
 
 
