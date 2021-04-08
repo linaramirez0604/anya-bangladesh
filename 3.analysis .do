@@ -142,6 +142,8 @@ label var zend_overall "Endline ASQ (std)"
 label var mother_education "Mother Education" 
 label var household_income "Household Income"
 
+save temp.dta, replace 
+
 
 
 
@@ -236,3 +238,62 @@ esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) ///
 	  
 *Fragment for tex 
 esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)
+
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*							SPILLOVER REGRESSIONS  
+*
+*---------------------------------------------------------------------------------------------------------
+
+use temp.dta, clear 
+
+*1. UNTREATED KIDS IN TREATED VILLAGES 
+
+keep if HV_10==1 | HV_20==1 | HVPK_10==1 | HVPK_20==1 | child_treat_status==9
+
+*Keep only kids not selected for HV treatment in the HV villages, not selected for HV treatment in HV+PK villages and kids that were in control villages
+keep if child_treat_status==4 | child_treat_status==8 | child_treat_status==9 
+
+
+
+*1. NOT STANDARDIZED - MAIN RESULTS 
+eststo clear 
+global treatments HVPK_20
+global controls  base_acskill base_exfunction Gender base_age_year 
+
+
+local  treatments HV_10 HV_20 HVPK_10 HVPK_20
+local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall  
+
+foreach treatment of local treatments{
+	foreach outcome of local outcomes{
+		reg `outcome' `treatment' $controls, cluster(VILLAGE_ID)
+		eststo `treatment'_`outcome'
+	
+}
+}
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) /// 
+  keep($treatments $controls) ///
+ order($treatments $controls) ///
+      constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)
+
+
+
+
+
+
+*2. SIBILLINGS AND COUSINS 
+
+
+erase temp.dta 
+
