@@ -141,6 +141,10 @@ label var zmid_overall "Midline ASQ (std)"
 label var zend_overall "Endline ASQ (std)"
 label var mother_education "Mother Education" 
 label var household_income "Household Income"
+label var HV_10 "HV -- 10"
+label var HV_20  "HV -- 20"
+label var HVPK_10 "HV+PK -- 10"
+label var HVPK_20 "HV+PK -- 20"
 
 save temp.dta, replace 
 
@@ -202,14 +206,11 @@ foreach outcome of local outcomes{
 
 
 * See how it looks in Stata:
-esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) /// 
-  keep($treatments $controls) ///
- order($treatments $controls) ///
-      constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
 
 
 
@@ -230,14 +231,11 @@ foreach outcome of local outcomes{
 
 
 * See how it looks in Stata:
-esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) /// 
-  keep($treatments $controls) ///
- order($treatments $controls) ///
-      constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
 
 
 
@@ -248,6 +246,8 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std.tex", labe
 *---------------------------------------------------------------------------------------------------------
 
 use temp.dta, clear 
+
+
 
 *1. UNTREATED KIDS IN TREATED VILLAGES 
 
@@ -260,7 +260,6 @@ keep if child_treat_status==4 | child_treat_status==8 | child_treat_status==9
 
 *1. NOT STANDARDIZED - MAIN RESULTS 
 eststo clear 
-global treatments HVPK_20
 global controls  base_acskill base_exfunction Gender base_age_year 
 
 
@@ -271,21 +270,65 @@ foreach treatment of local treatments{
 	foreach outcome of local outcomes{
 		reg `outcome' `treatment' $controls, cluster(VILLAGE_ID)
 		eststo `treatment'_`outcome'
+		estadd scalar r_squared = e(r2)
 	
 }
 }
 
 
 
+
 * See how it looks in Stata:
-esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) /// 
-  keep($treatments $controls) ///
- order($treatments $controls) ///
-      constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
-	  
+local  treatments HV_10 HV_20 HVPK_10 HVPK_20
+
+foreach treatment of local treatments{
+esttab `treatment'_mid_acskill `treatment'_end_acskill `treatment'_mid_exfunction `treatment'_end_exfunction `treatment'_mid_asq_overall `treatment'_end_asq_overall, se(3) replace label b(3) keep(`treatment' $controls) order(`treatment' $controls) constant extracols(4 7) nogaps
+}
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)
+
+
+foreach treatment of local treatments{
+esttab `treatment'_mid_acskill `treatment'_end_acskill `treatment'_mid_exfunction `treatment'_end_exfunction `treatment'_mid_asq_overall `treatment'_end_asq_overall using "$results/tables/spillovers_`treatment'.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep(`treatment' $controls)  order(`treatment' $controls)  constant extracols(4 7) nogaps
+}
+
+
+
+*  STANDARDIZED - MAIN RESULTS 
+eststo clear 
+global controls  zbase_acskill zbase_exfunction Gender base_age_year 
+
+local  treatments HV_10 HV_20 HVPK_10 HVPK_20
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction zmid_overall zend_overall 
+
+foreach treatment of local treatments{
+	foreach outcome of local outcomes{
+		reg `outcome' `treatment' $controls, cluster(VILLAGE_ID)
+		eststo `treatment'_`outcome'
+		estadd scalar r_squared = e(r2)
+	
+}
+}
+
+
+
+
+* See how it looks in Stata:
+local  treatments HV_10 HV_20 HVPK_10 HVPK_20
+
+foreach treatment of local treatments{
+esttab `treatment'_zmid_acskill `treatment'_zend_acskill `treatment'_zmid_exfunction `treatment'_zend_exfunction `treatment'_zmid_overall `treatment'_zend_overall, se(3) replace label b(3) keep(`treatment' $controls) order(`treatment' $controls) constant extracols(4 7) nogaps
+}
+	  
+*Fragment for tex 
+
+
+foreach treatment of local treatments{
+esttab `treatment'_zmid_acskill `treatment'_zend_acskill `treatment'_zmid_exfunction `treatment'_zend_exfunction `treatment'_zmid_overall `treatment'_zend_overall using "$results/tables/spillovers_`treatment'_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep(`treatment' $controls)  order(`treatment' $controls)  constant extracols(4 7) nogaps
+}
+
+
+
 
 
 
@@ -293,6 +336,82 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1.tex", label fr
 
 
 *2. SIBILLINGS AND COUSINS 
+
+use temp.dta, clear 
+
+keep if CT==2 
+
+gen sibilings=1 if treat1==2 | treat1==3 
+replace sibilings=0 if treat1==4
+
+label var sibilings "Sibiling"
+
+
+
+*Not standardized 
+eststo clear 
+global controls Gender base_age_year 
+global treatments sibilings 
+
+local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall  
+
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments $controls, cluster(VILLAGE_ID)
+		eststo  
+		estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+
+
+* See how it looks in Stata:
+
+esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
+
+	  
+*Fragment for tex 
+
+
+
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_sibilings.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+
+
+
+
+*  STANDARDIZED - SIBILINGS 
+eststo clear 
+global controls  Gender base_age_year 
+global treatments sibilings 
+
+
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction zmid_overall zend_overall 
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments $controls, cluster(VILLAGE_ID)
+		eststo  
+		estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+
+esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
+
+	  
+*Fragment for tex 
+
+
+
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_sibilings_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+
+
+
+
+
+
 
 
 erase temp.dta 
