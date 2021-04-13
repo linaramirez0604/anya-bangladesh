@@ -44,10 +44,6 @@ global dropbox `c(pwd)'
 	
 	use ECD_compiled, clear  
 	
-	*Keep only villages with HV and control
-	drop if missing(child_treat_status)
-
-	
 	
 
 *--------------------------------------------------------------------------------------------------------
@@ -146,6 +142,13 @@ label var HV_10 "HV -- 10"
 label var HV_20  "HV -- 20"
 label var HVPK_10 "HV+PK -- 10"
 label var HVPK_20 "HV+PK -- 20"
+
+
+
+
+save temp_PK.dta, replace
+
+drop if missing(child_treat_status) //only HV villages and control
 
 save temp.dta, replace 
 
@@ -340,19 +343,24 @@ esttab `treatment'_zmid_acskill `treatment'_zend_acskill `treatment'_zmid_exfunc
 
 use temp.dta, clear 
 
+
+
+
+*a. spillovers of HV program on siblings
+
 keep if CT==2 
 
-gen sibilings=1 if treat1==2 | treat1==3 
-replace sibilings=0 if treat1==4
+gen siblings_HV=1 if treat1==2 | treat1==3 
+replace siblings_HV=0 if treat1==4
 
-label var sibilings "Sibiling"
+label var siblings_HV "Sibling"
 
 
 
 *Not standardized 
 eststo clear 
 global controls Gender base_age_year 
-global treatments sibilings 
+global treatments siblings_HV
 
 local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall  
 
@@ -376,15 +384,15 @@ esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments 
 
 
 
-esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_sibilings.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_hv.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
 
 
 
 
-*  STANDARDIZED - SIBILINGS 
+*  STANDARDIZED - SIBLINGS 
 eststo clear 
 global controls  Gender base_age_year 
-global treatments sibilings 
+global treatments siblings_HV 
 
 
 local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction zmid_overall zend_overall 
@@ -406,7 +414,186 @@ esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments 
 
 
 
-esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_sibilings_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_hv_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+
+
+
+
+
+
+*b. Spillovers of PK program on siblings 
+
+use temp_PK.dta, clear 
+keep if CT ==2 
+gen siblings_PK = 1 if treat1 == 1|treat1 == 3 
+replace siblings_PK = 0 if treat1 == 4 
+label var siblings_PK "Sibling (PK)"
+
+
+*Not standardized 
+eststo clear 
+global controls Gender base_age_year 
+global treatments siblings_PK 
+
+local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall  
+
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments $controls, cluster(VILLAGE_ID)
+		eststo  
+		estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+*See how it looks in Stata 
+esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
+
+*Tex fragment
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+
+
+
+
+
+
+*Standardized 
+eststo clear 
+global controls  Gender base_age_year 
+global treatments siblings_PK  
+
+
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction zmid_overall zend_overall 
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments $controls, cluster(VILLAGE_ID)
+		eststo  
+		estadd scalar r_squared = e(r2)
+	
+}
+*See how it looks in Stata 
+esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
+
+
+*Tex
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+
+
+
+
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*							COMPARING TREATMENTS 
+*
+*---------------------------------------------------------------------------------------------------------
+
+/*
+In this section we want to run a few regressions to compare various treatments. 
+*/
+
+*1. HV_xx and HVPK_xx treatments 
+
+
+use temp.dta, clear 
+
+*Generating variables 
+
+
+
+
+
+*a. Method 1 - creating new variable 
+eststo clear 
+local nums "10 20 30"
+foreach num of local nums{
+
+	gen additional_PK_`num' = 1 if HVPK_`num' == 1 
+	replace additional_PK_`num' = 0 if HV_`num' == 1 
+
+	global treatment additional_PK_`num' 
+	global controls  base_acskill base_exfunction Gender base_age_year 
+
+	local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall 
+
+	foreach outcome of local outcomes { 
+		reg `outcome' $treatment $controls, cluster(VILLAGE_ID)
+		eststo 
+	}
+}
+
+/*
+The regressions above compare each type (10, 20, 30) of HVPK treatment with the corresponding HV treatment, on all the outcomes we're interested in. We do this by creating the dummy additional_PK_xx, which is 1 for villages which received BOTH HV and PK (xx) and 0 for villages which received only HV. So, it measures the additional effect of a PK treatment where the HV treatment was already given (for a particular xx) level.
+*/
+
+
+*Enter esttab commands here as needed: 
+
+ 
+
+
+
+*b. Method 2 - Using HVPK_xx and HV_xx in the same specification 
+
+/*
+I'm not sure what the best way to do this is (or whether what I'm doing) makes 
+complete sense, but the idea here is to run regression specifications where both 
+HV_xx and HVPK_xx are used as covariates. Note that: 
+
+1. In order to do this, we will need to change how these are defined since 
+as of now they are only 0 for treat1 == 4 (i.e. control group; given no treatment)
+
+2. This raises the question of what we want to keep as the 0 category in the new variables. POssibilities include keeping HV_xx and control = 0 in the HVPK_xx dummy (for example), keeping on HV_xx = 0 in the HVPK_xx dummy, or keeping everything else = 0. 
+*/
+
+
+*Here, trying one of these
+
+use temp.dta, clear 
+
+
+
+eststo clear 
+
+local nums "10 20 30"
+foreach num of local nums{
+
+	gen HVPK_`num'_c = 1 if HVPK_`num' == 1
+	replace HVPK_`num'_c = 0 if HVPK_`num' == 0|HV_`num' == 1 
+
+	gen HV_`num'_c = 1 if HV_`num' == 1
+	replace HV_`num'_c = 0 if HV_`num' == 0|HVPK_`num' == 1
+
+
+	global treatments HV_`num'_c HVPK_`num'_c
+	global controls  base_acskill base_exfunction Gender base_age_year 
+
+	local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall 
+
+		foreach outcome of local outcomes { 
+			reg `outcome' $treatments $controls, cluster(VILLAGE_ID)
+			eststo 
+	}
+
+}
+
+
+/*
+Here, the following regressions are run: 
+
+- We use HV_xx and HVPK_xx in the same specification with the usual controls 
+- These variables are slightly modified, stored in new variables called HVPK_xx_c 
+and HV_xx_c. HVPK_xx_c = 1 where HVPK_xx = 1 and 0 for the main control group 
+(treat1 == 4) OR the HV_xx = 1 group. Similarly, HV_xx_c = 1 where HV_xx = 1 and 
+0 for the main control group (treat1 == 4) AND where HVPK_xx = 1. In other words 
+in both cases we are controlling for the main control group as well as the other
+group (HVPK for HV, HV for HVPK)
+
+*/
+
+*Enter esttab command here as needed: 
+
+
 
 
 
@@ -416,4 +603,6 @@ esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_sibilings
 
 
 erase temp.dta 
+erase temp_PK.dta 
+
 
