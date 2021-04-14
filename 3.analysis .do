@@ -19,24 +19,6 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 *
 *------------------------------------------------------------------------------- 
 
-
-if c(os)=="Windows" {
-	cd "C:/Users/`c(username)'/Dropbox"
-	
-}
-else if c(os)=="MacOSX" {
-	cd "/Users/`c(username)'/Dropbox"
-	
-}
-
-global dropbox `c(pwd)'
-
-
-	gl input "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
-	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/output"
-	gl results "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/results"
-
-	
 	
 
 	cd "$output"
