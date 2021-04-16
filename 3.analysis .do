@@ -409,7 +409,7 @@ use temp_PK.dta, clear
 keep if CT ==2 
 gen siblings_PK = 1 if treat1 == 1|treat1 == 3 
 replace siblings_PK = 0 if treat1 == 4 
-label var siblings_PK "Sibling (PK)"
+label var siblings_PK "Sibling"
 
 
 *Not standardized 
@@ -431,8 +431,8 @@ local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_ove
 *See how it looks in Stata 
 esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
 
-*Tex fragment
-esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+*Tex 
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk.tex" , label replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
 
 
 
@@ -457,7 +457,7 @@ esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments 
 
 
 *Tex
-esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk_std.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls)  constant extracols(4 7) nogaps
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/spillovers_siblings_pk_std.tex" , label tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments $controls) order($treatments $controls) constant extracols(4 7) nogaps
 
 
 
@@ -487,10 +487,11 @@ use temp.dta, clear
 
 *a. Method 1 - creating new variable 
 eststo clear 
-local nums "10 20 30"
+local nums "10"
 foreach num of local nums{
-
+	capture drop additional_PK_`num'
 	gen additional_PK_`num' = 1 if HVPK_`num' == 1 
+	label var additional_PK_`num' "Additional PK - `num'"
 	replace additional_PK_`num' = 0 if HV_`num' == 1 
 
 	global treatment additional_PK_`num' 
@@ -499,17 +500,72 @@ foreach num of local nums{
 	local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall 
 
 	foreach outcome of local outcomes { 
-		reg `outcome' $treatment $controls, cluster(VILLAGE_ID)
+		qui reg `outcome' $treatment $controls, cluster(VILLAGE_ID)
 		eststo 
 	}
 }
+
+esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
+
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/additional_pk_10.tex" , label tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
 
 /*
 The regressions above compare each type (10, 20, 30) of HVPK treatment with the corresponding HV treatment, on all the outcomes we're interested in. We do this by creating the dummy additional_PK_xx, which is 1 for villages which received BOTH HV and PK (xx) and 0 for villages which received only HV. So, it measures the additional effect of a PK treatment where the HV treatment was already given (for a particular xx) level.
 */
 
 
-*Enter esttab commands here as needed: 
+local nums "20"
+foreach num of local nums{
+	capture drop additional_PK_`num'
+	gen additional_PK_`num' = 1 if HVPK_`num' == 1 
+	label var additional_PK_`num' "Additional PK - `num'"
+	replace additional_PK_`num' = 0 if HV_`num' == 1 
+
+	global treatment additional_PK_`num' 
+	global controls  base_acskill base_exfunction Gender base_age_year 
+
+	local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall 
+
+	foreach outcome of local outcomes { 
+		qui reg `outcome' $treatment $controls, cluster(VILLAGE_ID)
+		eststo 
+	}
+}
+
+esttab est7 est8 est9 est10 est11 est12, se(3) replace label b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
+
+esttab est7 est8 est9 est10 est11 est12 using "$results/tables/additional_pk_20.tex" , label tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
+
+
+
+local nums "30"
+foreach num of local nums{
+	capture drop additional_PK_`num'
+	gen additional_PK_`num' = 1 if HVPK_`num' == 1 
+	label var additional_PK_`num' "Additional PK - `num'"
+	replace additional_PK_`num' = 0 if HV_`num' == 1 
+
+	global treatment additional_PK_`num' 
+	global controls  base_acskill base_exfunction Gender base_age_year 
+
+	local outcomes mid_acskill end_acskill mid_exfunction end_exfunction mid_asq_overall end_asq_overall 
+
+	foreach outcome of local outcomes { 
+		qui reg `outcome' $treatment $controls, cluster(VILLAGE_ID)
+		eststo 
+	}
+}
+
+
+
+//Stata output
+esttab est13 est14 est15 est16 est17 est18, se(3) replace label b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
+
+//TeX output 
+esttab est13 est14 est15 est16 est17 est18 using "$results/tables/additional_pk_30.tex" , label tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatment $controls) order($treatment $controls) constant extracols(4 7) nogaps
+
+
+
 
  
 
