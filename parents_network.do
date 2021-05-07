@@ -12,9 +12,17 @@ use "output/ECD_compiled.dta", clear
 
 cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh/Parents Network Data"
 
+rename _merge old_merge 
 merge 1:m CHILD_ID using "pnetwork.dta"
 
 
+keep if !missing(R1)
+gen friend = 0 if R1 == 8
+replace friend = 1 if friend != 0 
+ 
+
+sort CHILD_ID 
+collapse (sum) connect = friend (mean) treat1 = treat1 (mean), by(CHILD_ID)
 
 
 
