@@ -2,7 +2,21 @@
 
 cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh/Parents Network Data"
 
-use "Parents network survey main.dta", clear 
+
+
+
+//merging data 
+
+cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh"
+use "output/ECD_compiled.dta", clear 
+
+cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh/Parents Network Data"
+
+merge 1:m CHILD_ID using "pnetwork.dta"
+
+
+
+
 
 
 
