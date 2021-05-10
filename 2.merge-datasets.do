@@ -379,14 +379,20 @@ drop if _merge==1
 drop _merge 
 
 gen HV_10=1 if treat_home==1 
-replace HV_10=0 if treat1==4
+*replace HV_10=0 if treat1==4
 
 gen HV_20=1 if treat_home==2 
-replace HV_20=0 if treat1==4
+*replace HV_20=0 if treat1==4
 
 
 gen HV_30=1 if treat_home==3 
-replace HV_30=0 if treat1==4
+*replace HV_30=0 if treat1==4
+
+
+replace HV_10=0 if missing(HV_10)
+replace HV_20=0 if missing(HV_20)
+replace HV_30=0 if missing(HV_30)
+
 
 
 save "$output/temp.dta", replace 
@@ -403,14 +409,24 @@ merge 1:m VILLAGE_ID using "$output/temp.dta"
 drop if _merge==1
 
 gen HVPK_10=1 if ctype==1 
-replace HVPK_10=0 if treat1==4
+*replace HVPK_10=0 if treat1==4
 
 
 gen HVPK_20=1 if ctype==2
-replace HVPK_20=0 if treat1==4
+*replace HVPK_20=0 if treat1==4
 
 gen HVPK_30=1 if ctype==3
-replace HVPK_30=0 if treat1==4
+*replace HVPK_30=0 if treat1==4
+
+replace HV_20=1 if child_treat_status==4 & HVPK_20==1
+
+
+replace HVPK_10=0 if missing(HVPK_10)
+replace HVPK_20=0 if missing(HVPK_20)
+replace HVPK_30=0 if missing(HVPK_30)
+
+
+
 
 
 *-------------------------------------------------------------------------------
@@ -443,6 +459,110 @@ rename Date_of_birth birthday
 order mother*, after(father_education)
 label var b_date "Baseline date"
 label var base_date "Baseline date"
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*						CREATING STD. VARIABLES (Based on control group means and sd.)
+*
+*---------------------------------------------------------------------------------------------------------
+
+*1. POOLING SOME MEASURES 
+*Academic Skill variable: Literacy + Numeracy 
+
+gen base_acskill=base_lit_overall+base_num_overall
+gen mid_acskill=mid_lit_overall+mid_num_overall
+gen end_acskill=end_lit_overall+end_num_overall
+order base_acskill mid_acskill end_acskill, after(source_lit)
+
+
+*Executive function (excluded PSRA because we onlyh have it for mid and endline)
+gen base_exfunction=base_os_overall+base_ss_overall
+gen mid_exfunction=mid_os_overall+mid_ss_overall
+gen end_exfunction=end_os_overall+end_ss_overall
+
+*2. STANDARDIZING VARIABLES 
+
+local asq "gm fm comm prbs psc overall"
+
+foreach var of local  asq{
+quietly summ base_asq_`var' if treat1==4
+scalar `var'_mean=r(mean)
+scalar `var'_sd=r(sd)
+gen zbase_`var'=(base_asq_`var'-`var'_mean)/`var'_sd
+gen zmid_`var'=(mid_asq_`var'-`var'_mean)/`var'_sd
+gen zend_`var'=(end_asq_`var'-`var'_mean)/`var'_sd
+
+
+}
+
+
+local skill "lit num os ss"
+
+foreach var of local skill {
+quietly summ base_`var'_overall  if treat1==4
+scalar `var'_mean=r(mean)
+scalar `var'_sd=r(sd)
+gen zbase_`var'_overall=(base_`var'_overall-`var'_mean)/`var'_sd
+gen zmid_`var'_overall=(mid_`var'_overall-`var'_mean)/`var'_sd
+gen zend_`var'_overall=(end_`var'_overall-`var'_mean)/`var'_sd
+
+}
+
+
+
+quietly summ base_acskill if treat1==4
+scalar acskill_mean=r(mean)
+scalar acskill_sd=r(sd)
+gen zbase_acskill=(base_acskill-acskill_mean)/acskill_sd
+gen zmid_acskill=(mid_acskill-acskill_mean)/acskill_sd
+gen zend_acskill=(end_acskill-acskill_mean)/acskill_sd
+
+
+quietly summ base_exfunction if treat1==4
+scalar exfunction_mean=r(mean)
+scalar exfunction_sd=r(sd)
+gen zbase_exfunction=(base_exfunction-exfunction_mean)/exfunction_sd
+gen zmid_exfunction=(mid_exfunction-exfunction_mean)/exfunction_sd
+gen zend_exfunction=(end_exfunction-exfunction_mean)/exfunction_sd
+
+replace Gender=. if Gender>1 
+
+
+*3. LABELS FOR REGRESSIONS
+
+label var homevisit2 "Only Home Visit"
+label var preschool2 "Only PK (In HV village)"
+label var both2 "Home Visit and PK (In HV village)"
+label var base_acskill "Baseline AS"
+label var base_exfunction "Baseline EF" 
+label var Gender "Gender"
+label var base_age_year "Age"
+label var mid_acskill "Midline AS" 
+label var end_acskill "Endline AS"
+label var mid_exfunction "Midline EF"
+label var end_exfunction "Endline EF"
+label var  base_asq_overall "Baseline ASQ" 
+label var  mid_asq_overall "Midline ASQ" 
+label var end_asq_overall "Endline ASQ"
+label var zbase_acskill "Baseline AS (std)" 
+label var zbase_exfunction "Baseline EF (std)"
+label var zmid_acskill "Midline AS(std)" 
+label var zend_acskill "Endline AS (std)" 
+label var zmid_exfunction "Midline EF (std)" 
+label var zend_exfunction "Endline EF (std)"
+label var zbase_overall "Baseline ASQ (std)"
+label var zmid_overall "Midline ASQ (std)" 
+label var zend_overall "Endline ASQ (std)"
+label var mother_education "Mother Education" 
+label var household_income "Household Income"
+label var HV_10 "HV -- 10"
+label var HV_20  "HV -- 20"
+label var HV_30  "HV -- 30"
+label var HVPK_10 "HV+PK -- 10"
+label var HVPK_20 "HV+PK -- 20"
+label var HVPK_30 "HV+PK -- 30"
+
 
 
 

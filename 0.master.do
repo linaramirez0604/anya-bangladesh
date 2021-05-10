@@ -7,7 +7,7 @@ AUTHOR: LINA RAMIREZ
 DATE CREATED: 26/01/2021
 LAST MODIFIED: 30/03/2021
 
-PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tanvir Ahmed and word document "Anya suggested analysis plan". 
+PURPOSE: Master do
 
 
 ------------------------------------------------------------------------------*/
