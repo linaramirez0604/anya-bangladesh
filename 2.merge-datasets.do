@@ -270,23 +270,33 @@ keep  VILLAGE_ID RECORD_ID ctype
 duplicates drop 
 merge 1:m VILLAGE_ID RECORD_ID using "$output/temp.dta"
 drop if _merge==1
+
+
 replace ctype=4 if treat1==3 & ctype==.
 
-replace child_treat_status=5 if ctype==1 
-replace child_treat_status=6 if ctype==2
-replace child_treat_status=7 if ctype==3
-replace child_treat_status=8 if ctype==4 
+replace child_treat_status=5 if ctype==1 & treat1==3
+replace child_treat_status=6 if ctype==2 & treat1==3
+replace child_treat_status=7 if ctype==3 & treat1==3
+replace child_treat_status=8 if ctype==4 & treat1==3
+
 drop ctype 
 drop _merge 
 
 *Control 
 replace child_treat_status=9 if treat1==4 
 
-label define child_treat_status 1 "HV-10 students-1 teacher" 2 "HV-20 students-2 teachers" 3 "HV-30 students-3 teachers" 4 "HV-didn't get HV" 5 "HV+preK-10 students-1 teacher" 6 "HV+preK-20 students-2 teachers" 7 "HV+preK-30 students-3 teachers" 8 "HV+preK-only gets preK no HV" 9 "Control"
+*Pre-school 
+replace child_treat_status=10 if treat1==1
+
+label define child_treat_status 1 "HV-10 students-1 teacher" 2 "HV-20 students-2 teachers" 3 "HV-30 students-3 teachers" 4 "HV-didn't get HV" 5 "HV+preK-10 students-1 teacher" 6 "HV+preK-20 students-2 teachers" 7 "HV+preK-30 students-3 teachers" 8 "HV+preK-only gets preK no HV" 9 "Control" 10 "Pre-K only"
 
 
 
 label values child_treat_status child_treat_status 
+
+*Fix treat1 variable based on child_treat_status variable
+
+replace treat1=2 if (child_treat_status==2 | child_treat_status==3) & missing(treat1)
 
 
 
@@ -355,6 +365,8 @@ label values both2 both2
 
 
 
+
+
 label variable homevisit2 "family was ONLY offered the HV program"
 label variable preschool2 "families who ONLY got offered the preschool (in HV+preK villages)"
 label variable both2 "families who got offered BOTH preschool and HV"
@@ -407,6 +419,7 @@ duplicates drop
 
 merge 1:m VILLAGE_ID using "$output/temp.dta"
 drop if _merge==1
+drop _merge 
 
 gen HVPK_10=1 if ctype==1 
 *replace HVPK_10=0 if treat1==4

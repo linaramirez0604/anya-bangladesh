@@ -26,8 +26,20 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 	
 	use ECD_compiled, clear  
 	
+	drop if missing(child_treat_status)
+	*drop if child_treat_status==10 //only HV villages and control
 	
-	drop if missing(child_treat_status) //only HV villages and control
+	tab treat1, gen(treatment)
+	rename treatment1 pkonly
+	label var pkonly "Pre-K only"
+	rename treatment2 hvonly
+	label var hvonly "Home Visit only"
+	rename treatment3 pk_hv
+	label var pk_hv "Pre-K + HV"
+	rename treatment4 control 
+	label var control "Control"
+	
+	
 
 	save temp.dta, replace 
 
@@ -42,19 +54,63 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 global desc "Gender base_age_year mother_education household_income base_acskill base_exfunction "
 
 
-eststo homevisit: estpost summarize $desc if homevisit2==1
-eststo preschool: estpost summarize $desc if preschool2==1
-eststo both: estpost summarize $desc if both2==1
-eststo control: estpost summarize $desc if both2!=1 & homevisit2!=1 & preschool2!=1
+eststo homevisit: estpost summarize $desc if treat1==2
+eststo preschool: estpost summarize $desc if treat1==1
+eststo both: estpost summarize $desc if treat1==3
+eststo control: estpost summarize $desc if treat1==4
 
 
 
 * See how it looks in Stata:
-esttab control homevisit preschool both, mtitles("Control" "Only HV" "Only PK (HV vill.)" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label
+esttab control homevisit preschool both, mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label
 
 
 *In tex: 
-esttab control homevisit preschool both using "$results/tables/descstats.tex", mtitles("Control" "Only HV" "Only PK (HV vill.)" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label frag replace 
+esttab control homevisit preschool both using "$results/tables/descstats.tex", mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label frag replace 
+
+
+
+
+
+*-------------------------------------------------------------------------------
+*						ATTRITION 
+*
+*------------------------------------------------------------------------------- 
+
+
+	rename source_num source_Num 
+	rename source_lit source_Lit
+	local tests ASQ Num Lit OS SS
+	
+	
+	foreach test of local tests{
+	count if source_`test'==1 
+	local attrited_`test'_endline=r(N)
+	
+	count if source_`test'==2 
+	local attrited_`test'_midline=r(N)
+	
+	}
+	
+
+
+
+
+capture file close st
+	
+	file open 	st using "$results/tables/attrition.tex", write replace
+		*file write 	st _n  "\begin{tabular}{ccc}" 
+		*file write 	st _n "\hline \hline \\"
+		file write 	st _n "\textbf{Test} & \textbf{Midline} & \textbf{Endline}  \\ \hline"
+		
+		foreach test of local tests {
+				file write 	st  " `test' & `attrited_`test'_midline' & `attrited_`test'_endline' \\  "	
+				*file write 	st _n " \hline"
+		}
+		
+		*file write 	st _n "\end{tabular}"
+	file close 	st
+
 
 
 
@@ -75,7 +131,9 @@ esttab control homevisit preschool both using "$results/tables/descstats.tex", m
 
 *STANDARDIZED - MAIN RESULTS 
 eststo clear 
-global treatments homevisit2 preschool2 both2 
+*global treatments homevisit2 preschool2 both2 
+global treatments hvonly pkonly pk_hv
+
 local controls1  zbase_acskill zbase_exfunction Gender base_age_year 
 local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
  
@@ -324,6 +382,10 @@ esttab est1 est2 est3 est4 est5 est6 using "$results/tables/reg4_spillovers.tex"
 
 
 
+
+
+* To count 
+ count if HV_20==1 & child_treat_status==4 // In HV village but doesn't get HV. 
 
 
 
