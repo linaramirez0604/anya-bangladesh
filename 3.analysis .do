@@ -39,6 +39,32 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 	rename treatment4 control 
 	label var control "Control"
 	
+	* Generating variables for descriptive statistics 
+	
+	gen HV_treated=1 if child_treat_status<4 
+	replace HV_treated=0 if child_treat_status==4 
+	
+	gen HVPK_treated=1 if child_treat_status>4 & child_treat_status<8 
+	replace HVPK_treated=0 if child_treat_status==8
+	
+	label define treated 1 "Treated" 0 "Untreated"
+	label values HV_treated treated 
+	label values HVPK_treated treated 
+	
+	gen treated=1 if HV_treated==1 | HVPK_treated==1 | treat1==1 
+	replace treated=0 if missing(treated)
+	label var treated "Treated"
+	
+	gen child_type=1 if CT==1 
+	replace child_type=0 if missing(child_type) 
+	
+	label define child_type 1 "Project Child" 0 "Sibiling/Cousin"
+	label values child_type child_type 
+	label var child_type "Child Type"
+	
+	label var father_education "Father's Education"
+	label var mother_education "Mother's Education"
+	
 	
 
 	save temp.dta, replace 
@@ -47,29 +73,169 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 
 
 *-------------------------------------------------------------------------------
-*						DESCRIPTIVE STATISTICS 
+*						TABLE 1. DESCRIPTIVE STATISTICS 
 *
 *------------------------------------------------------------------------------- 
 
-global desc "Gender base_age_year mother_education household_income base_acskill base_exfunction "
+	global desc "Gender base_age_year father_education mother_education household_income treated child_type base_acskill base_exfunction "
 
 
-eststo homevisit: estpost summarize $desc if treat1==2
-eststo preschool: estpost summarize $desc if treat1==1
-eststo both: estpost summarize $desc if treat1==3
-eststo control: estpost summarize $desc if treat1==4
+	eststo homevisit: estpost summarize $desc if treat1==2
+	eststo preschool: estpost summarize $desc if treat1==1
+	eststo both: estpost summarize $desc if treat1==3
+	eststo control: estpost summarize $desc if treat1==4
 
 
 
 * See how it looks in Stata:
-esttab control homevisit preschool both, mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label
+	esttab control homevisit preschool both, mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label
 
 
 *In tex: 
-esttab control homevisit preschool both using "$results/tables/descstats.tex", mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label frag replace 
+	esttab control homevisit preschool both using "$results/tables/descstats.tex", mtitles("Control" "Only HV" "Only PK" "HV and PK") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label frag replace 
 
 
 
+
+*-------------------------------------------------------------------------------
+*			TABLE 1. (APPENDIX) DESCRIPTIVE STATISTICS - SPECIFIC FOR TREATED AND UNTREATED 
+*
+*------------------------------------------------------------------------------- 
+
+	global desc "Gender base_age_year father_education mother_education household_income child_type base_acskill base_exfunction "
+
+
+	eststo homevisit_treat: estpost summarize $desc if treat1==2 & treated==1
+	eststo homevisit_untreated: estpost summarize $desc if treat1==2 & treated==0
+	eststo both_treated: estpost summarize $desc if treat1==3 & treated==1
+	eststo both_untreated: estpost summarize $desc if treat1==3 & treated==0
+
+
+
+* See how it looks in Stata:
+esttab homevisit_treat homevisit_untreated both_treated both_untreated, mtitles("HV-T" "HV-UT" "HV and PK-T" "HV and PK-UT") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label
+
+
+*In tex: 
+esttab homevisit_treat homevisit_untreated both_treated both_untreated using "$results/tables/descstats_bytreatment.tex", mtitles("HV-T" "HV-UT" "HV and PK-T" "HV and PK-UT") cells("mean(label(Mean) pattern(1 1 1) fmt(3)) sd(label(Std. Dev.) pattern(1 1 1) fmt(3))") label frag replace 
+
+
+
+* To count 
+ count if HV_20==1 & child_treat_status==4 // In HV village but doesn't get HV. 
+
+
+
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 3. REGRESSION - ITT 
+*
+*------------------------------------------------------------------------------- 
+
+	
+
+	use temp.dta, clear 
+
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+foreach outcome of local outcomes{
+	reg `outcome' $treatments `controls', cluster(VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+*Graph 
+
+coefplot (est1, label("Midline")) (est2, label("Endline")), bylabel("Academic Skills") ||  est3 est4, bylabel("Executive Function") ||, base keep($treatments)
+graph export "$results/graphs/reg1_std.pdf", replace 
+
+
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 4. REGRESSION  - TOT 
+*
+*------------------------------------------------------------------------------- 
+
+	use temp.dta, clear 
+	
+	*Generating instruments for 2SLS regression
+	drop HV_treated 
+	gen HV_treated=1 if child_treat_status<4 
+	replace HV_treated=0 if missing(HV_treated)
+	
+	drop HVPK_treated
+	gen HVPK_treated=1 if child_treat_status>4 & child_treat_status<8 
+	replace HVPK_treated=0 if missing(HVPK_treated)
+	
+
+
+*STANDARDIZED - MAIN RESULTS 
+eststo clear 
+*global treatments homevisit2 preschool2 both2 
+global treatments hvonly pkonly pk_hv
+
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+foreach outcome of local outcomes{
+	ivregress 2sls `outcome' `controls' pkonly (hvonly pk_hv=HV_treated HVPK_treated), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_tot_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 
 *-------------------------------------------------------------------------------
@@ -119,10 +285,248 @@ capture file close st
 
 
 
+*--------------------------------------------------------------------------------------------------------
+*							PRELIMINARY REGRESSIONS - AS AND EF 
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+
+
+
+*STANDARDIZED - MAIN RESULTS 
+eststo clear 
+*global treatments homevisit2 preschool2 both2 
+global treatments hvonly pkonly pk_hv
+
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+foreach outcome of local outcomes{
+	reg `outcome' $treatments `controls', cluster(VILLAGE_ID)
+	eststo 
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps
+
+
+
+
+
+
 
 *--------------------------------------------------------------------------------------------------------
-*							PRELIMINARY REGRESSIONS 
+*							SPILLOVER REGRESSIONS  
 *
+*---------------------------------------------------------------------------------------------------------
+
+use temp.dta, clear 
+
+
+
+
+*1. UNTREATED KIDS IN TREATED VILLAGES 
+
+keep if CT==1
+
+*Keep only kids not selected for HV treatment in the HV villages, and kids that were in control villages
+keep if child_treat_status==4 |  child_treat_status==9 
+
+*  STANDARDIZED  HV
+eststo clear 
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+global  treatmentshv HV_10 HV_20 HV_30
+
+
+
+foreach outcome of local outcomes{
+	reg `outcome' $treatmentshv `controls', cluster(VILLAGE_ID)
+	eststo 
+	estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatmentshv `controls') order($treatmentshv `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv `controls') order($treatmentshv `controls') constant extracols(4 7) nogaps
+
+
+
+
+*  STANDARDIZED - MAIN RESULTS - HVPK 
+
+
+use temp.dta, clear 
+
+
+keep if CT==1
+
+*Keep kids not selected for HV treatment in HV+PK villages and kids that were in control villages
+keep if  child_treat_status==8 | child_treat_status==9 
+
+eststo clear 
+
+global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+
+
+foreach outcome of local outcomes{
+	reg `outcome' $treatmentshvpk `controls', cluster(VILLAGE_ID)
+	eststo 
+	estadd scalar r_squared = e(r2)
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshvpk `controls') order($treatmentshvpk `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg2_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshvpk  `controls') order($treatmentshvpk  `controls') constant extracols(4 7) nogaps
+
+
+
+
+*  STANDARDIZED - MAIN RESULTS - HV and HVPK 
+
+
+
+use temp.dta, clear 
+
+
+keep if CT==1
+
+keep if  child_treat_status==4 | child_treat_status==8 | child_treat_status==9 
+
+
+eststo clear 
+global controls  zbase_acskill zbase_exfunction Gender base_age_year 
+
+global  treatmentshv HV_10 HV_20 HV_30
+global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+
+
+
+foreach outcome of local outcomes{
+	reg `outcome' $treatmentshv  $treatmentshvpk `controls', cluster(VILLAGE_ID)
+	eststo 
+	estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
+
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*							SPILLOVER REGRESSIONS - SIBILLINGS AND COUSINS  
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+
+
+*2. SIBILLINGS AND COUSINS 
+
+use temp.dta, clear 
+
+
+
+*a. spillovers of HV program on siblings
+
+keep if CT==2 
+
+gen siblings_HV=1 if treat1==2 
+gen sibilings_HVPK=1 if treat1==3 
+replace siblings_HV=0 if missing(siblings_HV)
+replace sibilings_HVPK=0 if missing(sibilings_HVPK)
+
+label var siblings_HV "Sibling of HV kid"
+label var sibilings_HVPK "Sibling of HVPK kid"
+
+
+*  STANDARDIZED - SIBLINGS 
+eststo clear 
+local controls  Gender base_age_year 
+global treatments siblings_HV sibilings_HVPK
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction 
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments `controls', cluster(VILLAGE_ID)
+		eststo  
+		estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant extracols(4 7) nogaps
+
+	  
+*Fragment for tex 
+
+
+
+esttab est1 est2 est3 est4 using "$results/tables/reg4_spillovers.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments `controls') order($treatments `controls')  constant extracols(4 7) nogaps
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ /* 	END		*/ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ /*
+ 
+ 
+ /*****************************************************************************************************************************************************
+ 
+												POTENTIAL APPENDIX TABLES 
+												(Tables based on tables above)
+ ***************************************************************************************************************************************************/
+ 
+
+*--------------------------------------------------------------------------------------------------------
+*							PRELIMINARY REGRESSIONS - INCLUDING SELF-REPORTED SURVEY
+*											
 *---------------------------------------------------------------------------------------------------------
 
 
@@ -159,13 +563,15 @@ esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std_all.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps
+
+
 
 
 
 
 *--------------------------------------------------------------------------------------------------------
-*							SPILLOVER REGRESSIONS  
+*							SPILLOVER REGRESSIONS   - INCLUDING SELF-REPORTED SURVEY
 *
 *---------------------------------------------------------------------------------------------------------
 
@@ -216,7 +622,7 @@ esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv `controls') order($treatmentshv `controls') constant extracols(4 7) nogaps
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_spillovers_all.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv `controls') order($treatmentshv `controls') constant extracols(4 7) nogaps
 
 
 
@@ -267,7 +673,7 @@ esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg2_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshvpk  `controls') order($treatmentshvpk  `controls') constant extracols(4 7) nogaps
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg2_spillovers_all.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshvpk  `controls') order($treatmentshvpk  `controls') constant extracols(4 7) nogaps
 
 
 
@@ -321,14 +727,14 @@ esttab est1 est2 est3 est4 est5 est6 , se(3) replace label b(3) keep($treatments
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
+esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg3_spillovers_all.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
 
 
 
 
 *--------------------------------------------------------------------------------------------------------
 *							SPILLOVER REGRESSIONS - SIBILLINGS AND COUSINS  
-*
+*  								INCLUDING SELF-REPORTED SURVEY
 *---------------------------------------------------------------------------------------------------------
 
 
@@ -378,14 +784,19 @@ esttab est1 est2 est3 est4 est5 est6, se(3) replace label b(3) keep($treatments 
 
 
 
-esttab est1 est2 est3 est4 est5 est6 using "$results/tables/reg4_spillovers.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments `controls') order($treatments `controls')  constant extracols(4 7) nogaps
+esttab est1 est2 est3 est4 est5 est6 using "$results/tables/reg4_spillovers_all.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments `controls') order($treatments `controls')  constant extracols(4 7) nogaps
 
 
 
 
 
-* To count 
- count if HV_20==1 & child_treat_status==4 // In HV village but doesn't get HV. 
+
+
+
+*/
+
+
+
 
 
 

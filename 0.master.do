@@ -29,12 +29,16 @@ else if c(os)=="MacOSX" {
 	
 }
 
+
 global dropbox `c(pwd)'
 
-	gl main "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh"
+
+
+	gl main "$dropbox/Chicago/UChicago/ECD_Bangladesh"
 	gl input "$main/input"
 	gl output "$main/output"
 	gl results "$main/results"
 
 	
 	
+
