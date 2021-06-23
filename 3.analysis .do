@@ -225,7 +225,10 @@ esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls
 esttab  est1 est2 est3 est4 using "$results/tables/reg1_tot_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
 
 
-	
+
+coefplot (est1, label("Midline")) (est2, label("Endline")), bylabel("Academic Skills") ||  est3 est4, bylabel("Executive Function") ||, base keep($treatments)
+graph export "$results/graphs/reg1_std_tot.pdf", replace 
+
 	
 	
 	
