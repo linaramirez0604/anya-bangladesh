@@ -22,55 +22,9 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 	
 
 	cd "$output"
-	
-	
+
 	use ECD_compiled, clear  
 	
-	drop if missing(child_treat_status)
-	*drop if child_treat_status==10 //only HV villages and control
-	
-	tab treat1, gen(treatment)
-	rename treatment1 pkonly
-	label var pkonly "Pre-K only"
-	rename treatment2 hvonly
-	label var hvonly "Home Visit only"
-	rename treatment3 pk_hv
-	label var pk_hv "Pre-K + HV"
-	rename treatment4 control 
-	label var control "Control"
-	
-	* Generating variables for descriptive statistics 
-	
-	gen HV_treated=1 if child_treat_status<4 
-	replace HV_treated=0 if child_treat_status==4 
-	
-	gen HVPK_treated=1 if child_treat_status>4 & child_treat_status<8 
-	replace HVPK_treated=0 if child_treat_status==8
-	
-	label define treated 1 "Treated" 0 "Untreated"
-	label values HV_treated treated 
-	label values HVPK_treated treated 
-	
-	gen treated=1 if HV_treated==1 | HVPK_treated==1 | treat1==1 
-	replace treated=0 if missing(treated)
-	label var treated "Treated"
-	
-	gen child_type=1 if CT==1 
-	replace child_type=0 if missing(child_type) 
-	
-	label define child_type 1 "Project Child" 0 "Sibiling/Cousin"
-	label values child_type child_type 
-	label var child_type "Child Type"
-	
-	label var father_education "Father's Education"
-	label var mother_education "Mother's Education"
-	
-	
-
-	save temp.dta, replace 
-
-
-
 
 *-------------------------------------------------------------------------------
 *						TABLE 1. DESCRIPTIVE STATISTICS 
@@ -135,7 +89,7 @@ esttab homevisit_treat homevisit_untreated both_treated both_untreated using "$r
 
 	
 
-	use temp.dta, clear 
+	use ECD_compiled.dta, clear 
 
 
 	*STANDARDIZED - MAIN RESULTS 
@@ -183,7 +137,7 @@ graph export "$results/graphs/reg1_std.pdf", replace
 *
 *------------------------------------------------------------------------------- 
 
-	use temp.dta, clear 
+	use ECD_compiled.dta, clear 
 	
 	*Generating instruments for 2SLS regression
 	drop HV_treated 
@@ -231,6 +185,55 @@ graph export "$results/graphs/reg1_std_tot.pdf", replace
 
 	
 	
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 5. SPILLOVER EFFECTS
+*
+*------------------------------------------------------------------------------- 
+
+	
+
+*  STANDARDIZED - MAIN RESULTS - HV and HVPK 
+
+
+
+use ECD_compiled.dta, clear 
+
+
+keep if CT==1
+
+keep if  child_treat_status==4 | child_treat_status==8 | child_treat_status==9 
+
+
+eststo clear 
+global controls  zbase_acskill zbase_exfunction Gender base_age_year 
+
+global  treatmentshv HV_10 HV_20 HV_30
+global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
+local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+
+
+
+foreach outcome of local outcomes{
+	reg `outcome' $treatmentshv  $treatmentshvpk `controls', cluster(VILLAGE_ID)
+	eststo 
+	estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
+
+
+
 	
 	
 	
@@ -330,7 +333,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment
 *
 *---------------------------------------------------------------------------------------------------------
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 
@@ -372,7 +375,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg1_spillovers.tex", label f
 *  STANDARDIZED - MAIN RESULTS - HVPK 
 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 keep if CT==1
@@ -405,46 +408,6 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg2_spillovers.tex", label f
 
 
 
-*  STANDARDIZED - MAIN RESULTS - HV and HVPK 
-
-
-
-use temp.dta, clear 
-
-
-keep if CT==1
-
-keep if  child_treat_status==4 | child_treat_status==8 | child_treat_status==9 
-
-
-eststo clear 
-global controls  zbase_acskill zbase_exfunction Gender base_age_year 
-
-global  treatmentshv HV_10 HV_20 HV_30
-global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
-local controls  zbase_acskill zbase_exfunction Gender base_age_year 
-local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
-
-
-
-foreach outcome of local outcomes{
-	reg `outcome' $treatmentshv  $treatmentshvpk `controls', cluster(VILLAGE_ID)
-	eststo 
-	estadd scalar r_squared = e(r2)
-	
-}
-
-
-
-* See how it looks in Stata:
-esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps stats(r_squared N, fmt(3 0))
-	  
-	  
-*Fragment for tex 
-esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
-
-
-
 
 *--------------------------------------------------------------------------------------------------------
 *							SPILLOVER REGRESSIONS - SIBILLINGS AND COUSINS  
@@ -456,7 +419,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label f
 
 *2. SIBILLINGS AND COUSINS 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 
@@ -578,7 +541,7 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_std_all.tex", 
 *
 *---------------------------------------------------------------------------------------------------------
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 
@@ -633,7 +596,7 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg1_spillovers_all
 *  STANDARDIZED - MAIN RESULTS - HVPK 
 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 keep if CT==1
@@ -685,7 +648,7 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg2_spillovers_all
 
 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 keep if CT==1
@@ -745,7 +708,7 @@ esttab  est1 est2 est3 est4 est5 est6 using "$results/tables/reg3_spillovers_all
 
 *2. SIBILLINGS AND COUSINS 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 
@@ -822,7 +785,7 @@ In this section we want to run a few regressions to compare various treatments.
 *1. HV_xx and HVPK_xx treatments 
 
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 *Generating variables 
 
@@ -932,7 +895,7 @@ as of now they are only 0 for treat1 == 4 (i.e. control group; given no treatmen
 
 *Here, trying one of these
 
-use temp.dta, clear 
+use ECD_compiled.dta, clear 
 
 
 
@@ -985,7 +948,5 @@ group (HVPK for HV, HV for HVPK)
 
 
 
-erase temp.dta 
-erase temp_PK.dta 
 
 

@@ -28,21 +28,9 @@ NOTES:
 
 
 
-
-if c(os)=="Windows" {
-	cd "C:/Users/`c(username)'/Dropbox"
-	
-}
-else if c(os)=="MacOSX" {
-	cd "/Users/`c(username)'/Dropbox"
-	
-}
-
-global dropbox `c(pwd)'
-
-	gl input "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
-	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/output"
-	gl results "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/results"
+	gl input "$dropbox/Chicago/UChicago/ECD_Bangladesh/input"
+	gl output "$dropbox/Chicago/UChicago/ECD_Bangladesh/output"
+	gl results "$dropbox/Chicago/UChicago/ECD_Bangladesh/results"
 
 	
 
@@ -576,6 +564,47 @@ label var HVPK_10 "HV+PK -- 10"
 label var HVPK_20 "HV+PK -- 20"
 label var HVPK_30 "HV+PK -- 30"
 
+
+
+tab treat1, gen(treatment)
+rename treatment1 pkonly
+label var pkonly "Pre-K only"
+rename treatment2 hvonly
+label var hvonly "Home Visit only"
+rename treatment3 pk_hv
+label var pk_hv "Pre-K + HV"
+rename treatment4 control 
+label var control "Control"
+	
+	* Generating variables for descriptive statistics 
+	
+gen HV_treated=1 if child_treat_status<4 
+replace HV_treated=0 if child_treat_status==4 
+	
+gen HVPK_treated=1 if child_treat_status>4 & child_treat_status<8 
+replace HVPK_treated=0 if child_treat_status==8
+	
+label define treated 1 "Treated" 0 "Untreated"
+label values HV_treated treated 
+label values HVPK_treated treated 
+	
+gen treated=1 if HV_treated==1 | HVPK_treated==1 | treat1==1 
+replace treated=0 if missing(treated)
+label var treated "Treated"
+	
+gen child_type=1 if CT==1 
+replace child_type=0 if missing(child_type) 
+	
+label define child_type 1 "Project Child" 0 "Sibiling/Cousin"
+label values child_type child_type 
+label var child_type "Child Type"
+	
+label var father_education "Father's Education"
+label var mother_education "Mother's Education"
+
+drop if missing(child_treat_status)
+
+	
 
 
 
