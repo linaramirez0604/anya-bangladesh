@@ -259,7 +259,7 @@ duplicates drop
 merge 1:m VILLAGE_ID RECORD_ID using "$output/temp.dta"
 drop if _merge==1
 
-
+replace treat1=3 if ctype==2 
 replace ctype=4 if treat1==3 & ctype==.
 
 replace child_treat_status=5 if ctype==1 & treat1==3
@@ -400,6 +400,7 @@ save "$output/temp.dta", replace
 
 *Villages with  home visit + preK 
 
+
 use "$input/ecd_home_PreK_FINAL.dta", clear
 
 keep  VILLAGE_ID ctype 
@@ -408,6 +409,9 @@ duplicates drop
 merge 1:m VILLAGE_ID using "$output/temp.dta"
 drop if _merge==1
 drop _merge 
+replace ctype=. if ctype==2 & child_treat_status==4
+
+
 
 gen HVPK_10=1 if ctype==1 
 *replace HVPK_10=0 if treat1==4
@@ -425,6 +429,9 @@ replace HV_20=1 if child_treat_status==4 & HVPK_20==1
 replace HVPK_10=0 if missing(HVPK_10)
 replace HVPK_20=0 if missing(HVPK_20)
 replace HVPK_30=0 if missing(HVPK_30)
+
+label define ctype 1 "10 students, 1 teacher" 2 "20 students, 2 teachers" 3 "30 students, 3 teachers"
+label values ctype ctype 
 
 
 
