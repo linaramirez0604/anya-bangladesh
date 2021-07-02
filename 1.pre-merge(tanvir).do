@@ -26,23 +26,9 @@ NOTES:
 *------------------------------------------------------------------------------- 
 
 
-*global input "C:\Users\tanvi\Dropbox (Personal)\ECD_Data_documents_2020\Final Data_ALL rounds"
-*global output "C:\Users\tanvi\Dropbox (Personal)\ECD_Data_documents_2020\Final Data_ALL rounds\Compiled Dataset"
-
-
-if c(os)=="Windows" {
-	cd "C:/Users/`c(username)'/Dropbox"
-	
-}
-else if c(os)=="MacOSX" {
-	cd "/Users/`c(username)'/Dropbox"
-	
-}
-
-global dropbox `c(pwd)'
 
 	gl input "$dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds"
-	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
+	gl output "$dropbox/Chicago/UChicago/ECD_Bangladesh/input"
 	
 
 

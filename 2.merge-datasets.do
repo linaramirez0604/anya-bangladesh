@@ -28,21 +28,9 @@ NOTES:
 
 
 
-
-if c(os)=="Windows" {
-	cd "C:/Users/`c(username)'/Dropbox"
-	
-}
-else if c(os)=="MacOSX" {
-	cd "/Users/`c(username)'/Dropbox"
-	
-}
-
-global dropbox `c(pwd)'
-
-	gl input "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/input"
-	gl output "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/output"
-	gl results "$dropbox/Chicago/UChicago/Personal/ECD_Bangladesh/results"
+	gl input "$dropbox/Chicago/UChicago/ECD_Bangladesh/input"
+	gl output "$dropbox/Chicago/UChicago/ECD_Bangladesh/output"
+	gl results "$dropbox/Chicago/UChicago/ECD_Bangladesh/results"
 
 	
 
@@ -271,7 +259,7 @@ duplicates drop
 merge 1:m VILLAGE_ID RECORD_ID using "$output/temp.dta"
 drop if _merge==1
 
-
+replace treat1=3 if ctype==2 
 replace ctype=4 if treat1==3 & ctype==.
 
 replace child_treat_status=5 if ctype==1 & treat1==3
@@ -412,6 +400,7 @@ save "$output/temp.dta", replace
 
 *Villages with  home visit + preK 
 
+
 use "$input/ecd_home_PreK_FINAL.dta", clear
 
 keep  VILLAGE_ID ctype 
@@ -420,6 +409,9 @@ duplicates drop
 merge 1:m VILLAGE_ID using "$output/temp.dta"
 drop if _merge==1
 drop _merge 
+replace ctype=. if ctype==2 & child_treat_status==4
+
+
 
 gen HVPK_10=1 if ctype==1 
 *replace HVPK_10=0 if treat1==4
@@ -437,6 +429,9 @@ replace HV_20=1 if child_treat_status==4 & HVPK_20==1
 replace HVPK_10=0 if missing(HVPK_10)
 replace HVPK_20=0 if missing(HVPK_20)
 replace HVPK_30=0 if missing(HVPK_30)
+
+label define ctype 1 "10 students, 1 teacher" 2 "20 students, 2 teachers" 3 "30 students, 3 teachers"
+label values ctype ctype 
 
 
 
@@ -576,6 +571,47 @@ label var HVPK_10 "HV+PK -- 10"
 label var HVPK_20 "HV+PK -- 20"
 label var HVPK_30 "HV+PK -- 30"
 
+
+
+tab treat1, gen(treatment)
+rename treatment1 pkonly
+label var pkonly "Pre-K only"
+rename treatment2 hvonly
+label var hvonly "Home Visit only"
+rename treatment3 pk_hv
+label var pk_hv "Pre-K + HV"
+rename treatment4 control 
+label var control "Control"
+	
+	* Generating variables for descriptive statistics 
+	
+gen HV_treated=1 if child_treat_status<4 
+replace HV_treated=0 if child_treat_status==4 
+	
+gen HVPK_treated=1 if child_treat_status>4 & child_treat_status<8 
+replace HVPK_treated=0 if child_treat_status==8
+	
+label define treated 1 "Treated" 0 "Untreated"
+label values HV_treated treated 
+label values HVPK_treated treated 
+	
+gen treated=1 if HV_treated==1 | HVPK_treated==1 | treat1==1 
+replace treated=0 if missing(treated)
+label var treated "Treated"
+	
+gen child_type=1 if CT==1 
+replace child_type=0 if missing(child_type) 
+	
+label define child_type 1 "Project Child" 0 "Sibiling/Cousin"
+label values child_type child_type 
+label var child_type "Child Type"
+	
+label var father_education "Father's Education"
+label var mother_education "Mother's Education"
+
+drop if missing(child_treat_status)
+
+	
 
 
 

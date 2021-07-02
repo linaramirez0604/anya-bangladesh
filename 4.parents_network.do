@@ -1,6 +1,47 @@
 
+/* -----------------------------------------------------------------------------
+PROJECT: BANGLADESH EDUCATION PROJECT 
+TOPIC: PRELIMINARY ANALYSIS 
+AUTHOR: TANMAY GUPTA. MODIFICATIONS BY LINA RAMIREZ 
+DATE CREATED: 
+LAST MODIFIED: 24/06/2021
 
-cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh/Parents Network Data"
+PURPOSE: Analyze parents networks data. 
+
+
+
+------------------------------------------------------------------------------*/
+
+
+
+*-------------------------------------------------------------------------------
+*						DIRECTORY
+*
+*------------------------------------------------------------------------------- 
+
+gl network "$main/Parents Network Data"
+
+cd "${output}"
+
+
+use  "$network/pnetwork.dta", clear 
+keep if !missing(R1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
