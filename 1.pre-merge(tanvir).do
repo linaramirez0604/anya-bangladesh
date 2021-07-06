@@ -667,3 +667,7 @@ rename GENDER Gender
 keep CHILD_ID Gender VILLAGE_ID FAMILY_ID RECORD_ID treat1 father_age father_occupation father_income mother_age father_education mother_education parent_income household_income
 
 save "$output/socio_economic.dta", replace
+
+
+
+*** END *** 
