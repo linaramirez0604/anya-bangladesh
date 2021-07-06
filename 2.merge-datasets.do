@@ -471,6 +471,15 @@ gen end_exfunction=end_os_overall+end_ss_overall
 local asq "gm fm comm prbs psc overall"
 
 foreach var of local  asq{
+	egen zbase_`var'=std(base_asq_`var')
+	egen zmid_`var'=std(mid_asq_`var')
+	egen zend_`var'=std(end_asq_`var') 
+	
+}
+
+
+/*
+foreach var of local  asq{
 quietly summ base_asq_`var' if treat1==4
 scalar `var'_mean=r(mean)
 scalar `var'_sd=r(sd)
@@ -481,9 +490,22 @@ gen zend_`var'=(end_asq_`var'-`var'_mean)/`var'_sd
 
 }
 
+*/ 
+
+
 
 local skill "lit num os ss"
 
+foreach var of local skill {
+	egen zbase_`var'_overall=std(base_`var'_overall)
+	egen zmid_`var'_overall=std(mid_`var'_overall)
+	egen zend_`var'_overall=std(end_`var'_overall)
+
+}
+
+
+
+/*
 foreach var of local skill {
 quietly summ base_`var'_overall  if treat1==4
 scalar `var'_mean=r(mean)
@@ -493,9 +515,23 @@ gen zmid_`var'_overall=(mid_`var'_overall-`var'_mean)/`var'_sd
 gen zend_`var'_overall=(end_`var'_overall-`var'_mean)/`var'_sd
 
 }
+*/ 
+
+*Academic Skills 
+egen zbase_acskill=std(base_acskill-acskill_mean)
+egen zmid_acskill=std(mid_acskill-acskill_mean)
+egen zend_acskill=std(end_acskill-acskill_mean)
+
+
+*Executive funciton
+egen zbase_exfunction=std(base_exfunction-exfunction_mean)
+egen zmid_exfunction=std(mid_exfunction-exfunction_mean)
+egen zend_exfunction=std(end_exfunction-exfunction_mean)
 
 
 
+
+/*
 quietly summ base_acskill if treat1==4
 scalar acskill_mean=r(mean)
 scalar acskill_sd=r(sd)
@@ -510,6 +546,7 @@ scalar exfunction_sd=r(sd)
 gen zbase_exfunction=(base_exfunction-exfunction_mean)/exfunction_sd
 gen zmid_exfunction=(mid_exfunction-exfunction_mean)/exfunction_sd
 gen zend_exfunction=(end_exfunction-exfunction_mean)/exfunction_sd
+*/
 
 replace Gender=. if Gender>1 
 
@@ -598,5 +635,5 @@ erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
 
 
-*END 
+*** END *** 
 
