@@ -304,29 +304,6 @@ label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 *
 *------------------------------------------------------------------------------- 
 
-/*
-*1 if Family ONLY got offered HV program, 0 if control or didn't get offered any program. 
-gen homevisit2=.
-replace homevisit2=1 if child_treat_status<=3 | (child_treat_status>=5 & child_treat_status<8)
-replace homevisit2=0 if child_treat_status==4 | child_treat_status==9
-label define homevisit2 1 "Offered HV program" 0 "Control, didn't get offered any program'"
-label values homevisit2 homevisit2
-
-
-*1 if Family ONLY got offered preschool (in HV+preschool village), 0 if got HV+preschool or control 
-gen preschool2=. 
-replace preschool2=1 if child_treat_status==8
-replace preschool2=0 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7 | child_treat_status==9
-label define preschool2 1 "Belongs to school+HV but only got school" 0 "childs who got both schoold & HV or control child"
-label values preschool2 preschool2
-
-*1 if Family gets offered both PreK and HV, 0 if gets one of both (in HV or HV+preK villages, only preK is excluded from the analysis)
-gen both2=. 
-replace both2=1 if child_treat_status==5 | child_treat_status==6 | child_treat_status==7
-replace both2=0 if child_treat_status==1 | child_treat_status==2 | child_treat_status==3 | child_treat_status==8 | child_treat_status==9 
-label define both2 1 "Received both sch & HV" 0 "Control or received one type of treatment (in either HV or HV+preK villages)"
-label values both2 both2
-*/
 
 
 *1 if Family ONLY got offered HV program, 0 if control or didn't get offered any program. 
