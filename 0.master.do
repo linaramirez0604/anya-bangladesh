@@ -38,6 +38,11 @@ global dropbox `c(pwd)'
 	gl input "$main/input"
 	gl output "$main/output"
 	gl results "$main/results"
+	gl tables "$main/results/tables"
+	gl graphs "$main/results/graphs"
+	gl tot "$main/results/tables/tot"
+
+
 
 	
 	
