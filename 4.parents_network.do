@@ -32,20 +32,6 @@ keep if !missing(R1)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //merging data 
 
 cd "/Users/tanmaygupta/Dropbox/ECD_Bangladesh"
