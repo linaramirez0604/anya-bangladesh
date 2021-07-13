@@ -46,7 +46,7 @@ local  dataset `" "Baseline ASQ" "Baseline Literacy" "Baseline Numeracy" "Baseli
 foreach var of local dataset {
 use "$input/`var'.dta", clear
 capture drop CT CB Gender
-merge 1:1 CHILD_ID using "$input/Child informations.dta", keepusing (CT CB Gender) keep(match) nogen 
+merge 1:1 CHILD_ID using "$input/Child informations.dta", keepusing (CT CB Gender Project_continuation) keep(match) nogen 
 drop if missing(CT)
 save "$output/`var'.dta", replace 
 }
@@ -296,6 +296,14 @@ gen base_age_year=round(base_age_month/12)
 label variable base_age_month "Age 1st February, 2017 (Baseline survey) in months"
 label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 
+*Attrition 
+gen attrited_year1=1 if Project_continuation=="No" 
+replace attrited_year1=0 if Project_continuation=="Yes" 
+label define attrited_year1 1 "Attrited" 0 "Continued"
+label values attrited_year1 attrited_year1
+label var attrited_year1 "Attrited on year 1"
+
+
 
 
 
@@ -445,6 +453,8 @@ order mother*, after(father_education)
 label var b_date "Baseline date"
 label var base_date "Baseline date"
 
+order Project_continuation attrited_year1, after(CT)
+
 
 
 *--------------------------------------------------------------------------------------------------------
@@ -518,15 +528,15 @@ gen zend_`var'_overall=(end_`var'_overall-`var'_mean)/`var'_sd
 */ 
 
 *Academic Skills 
-egen zbase_acskill=std(base_acskill-acskill_mean)
-egen zmid_acskill=std(mid_acskill-acskill_mean)
-egen zend_acskill=std(end_acskill-acskill_mean)
+egen zbase_acskill=std(base_acskill)
+egen zmid_acskill=std(mid_acskill)
+egen zend_acskill=std(end_acskill)
 
 
 *Executive funciton
-egen zbase_exfunction=std(base_exfunction-exfunction_mean)
-egen zmid_exfunction=std(mid_exfunction-exfunction_mean)
-egen zend_exfunction=std(end_exfunction-exfunction_mean)
+egen zbase_exfunction=std(base_exfunction)
+egen zmid_exfunction=std(mid_exfunction)
+egen zend_exfunction=std(end_exfunction)
 
 
 
@@ -625,8 +635,33 @@ label var mother_education "Mother's Education"
 
 drop if missing(child_treat_status)
 
-	
+*Log of household income
+gen ln_household_income=ln(household_income)
+label var ln_household_income "Household income"
 
+* Added in year 2
+gen added_year2=1 if missing(base_asq_gm)& missing(base_asq_fm)& missing( base_asq_comm)& missing( base_asq_prbs)& missing( base_asq_psc)& missing( base_asq_overall)& missing( base_num_overall)& missing( base_lit_overall)& missing( base_acskill)& missing( base_os_overall)& missing( base_ss_overall) 
+replace added_year2=0 if missing(added_year2)
+
+label define added_year2 1 "added in second year" 0 "Added in year 1"
+label values added_year2 added_year2
+label var added_year2 "Added in Year 2" 
+
+order ln_household_income, after(household_income)
+order added_year2, after(treat1)
+
+
+*Variable to know if they have scores at baseline 
+local baseline acskill exfunction
+	foreach var of local baseline {
+	gen has_base_`var'=1 if !missing(zbase_`var')
+	replace has_base_`var'=0 if missing(has_base_`var')
+	}
+	
+	label var has_base_acskill "Has Baseline AS"
+	label var has_base_exfunction "Has Baseline EF"
+
+order has_*, after(zend_exfunction)
 
 
 
