@@ -19,7 +19,8 @@ PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tan
 *
 *------------------------------------------------------------------------------- 
 
-	
+	set scheme s2mono 
+
 
 	cd "$output"
 
@@ -88,16 +89,17 @@ esttab homevisit_treat homevisit_untreated both_treated both_untreated using "$r
 
 	
 *-------------------------------------------------------------------------------
-*			TABLE 3. REGRESSION - ITT 
+*			TABLE 3. v1 REGRESSION - ITT 
 *
 *------------------------------------------------------------------------------- 
 
 	
-
 	use ECD_compiled.dta, clear 
 	
 	keep if  CT==1 
 	drop if  child_treat_status==4 | child_treat_status==8  
+	
+	
 	
 
 	*STANDARDIZED - MAIN RESULTS 
@@ -105,7 +107,7 @@ esttab homevisit_treat homevisit_untreated both_treated both_untreated using "$r
 	*global treatments homevisit2 preschool2 both2 
 	global treatments hvonly pkonly pk_hv
 
-	local controls  zbase_acskill zbase_exfunction Gender base_age_year 
+	local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income
 	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
  
 foreach outcome of local outcomes{
@@ -124,11 +126,11 @@ foreach outcome of local outcomes{
 
 
 * See how it looks in Stata:
-esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(3 3 3 0)) nogaps  
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(3 3 3 0)) nogaps  
 	  	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant extracols(4 7) nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
 
 
 
@@ -136,6 +138,122 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg1_std.tex", label fragment
 
 coefplot (est1, label("Midline")) (est2, label("Endline")), bylabel("Academic Skills") ||  est3 est4, bylabel("Executive Function") ||, base keep($treatments)
 graph export "$results/graphs/reg1_std.pdf", replace 
+
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 3. v2 REGRESSION - ITT 
+*			Eliminating kids added on year 2, assigning 0 to missing values in baseline scores 
+*------------------------------------------------------------------------------- 
+
+	
+	use ECD_compiled.dta, clear 
+	
+	keep if  CT==1 
+	drop if  child_treat_status==4 | child_treat_status==8  
+	keep if added_year2==0
+	
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+
+	
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income has_base_acskill has_base_exfunction
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+foreach outcome of local outcomes{
+	reg `outcome' $treatments `controls', cluster(VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_std_v2.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 3. v3 REGRESSION - ITT 
+* 	Using spillover kids as control kids for hv and hvpk -- question
+*------------------------------------------------------------------------------- 
+
+	
+	use ECD_compiled.dta, clear 
+	
+	keep if  CT==1 
+	*Drop control 
+	drop if  child_treat_status==9 
+	*Change treatment variables
+	replace hvonly=0 if  child_treat_status==4
+	replace pk_hv=0 if child_treat_status==8 
+	
+	
+	
+	
+	
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+foreach outcome of local outcomes{
+	reg `outcome' $treatments `controls', cluster(VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4 , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(3 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg1_std_v3.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+*Graph 
+
+coefplot (est1, label("Midline")) (est2, label("Endline")), bylabel("Academic Skills") ||  est3 est4, bylabel("Executive Function") ||, base keep($treatments)
+graph export "$results/graphs/reg1_std.pdf", replace 
+
+
+
 
 
 
@@ -176,7 +294,7 @@ foreach outcome of local outcomes{
 
 
 *-------------------------------------------------------------------------------
-*			TABLE 5. SPILLOVER EFFECTS
+*			TABLE 5.v1 SPILLOVER EFFECTS
 *
 *------------------------------------------------------------------------------- 
 
@@ -195,11 +313,10 @@ keep if  child_treat_status==4 | child_treat_status==8 | child_treat_status==9
 
 
 eststo clear 
-global controls  zbase_acskill zbase_exfunction Gender base_age_year 
+local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income
 
 global  treatmentshv HV_10 HV_20 HV_30
 global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
-local controls  zbase_acskill zbase_exfunction Gender base_age_year 
 local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
 
 
@@ -218,7 +335,66 @@ esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshv $treatme
 	  
 	  
 *Fragment for tex 
-esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant extracols(4 7) nogaps
+esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant nogaps
+
+
+
+
+
+*-------------------------------------------------------------------------------
+*			TABLE 5. v2 SPILLOVER EFFECTS
+*	Eliminating kids added on year 2, assigning 0 to missing values in baseline scores 
+*------------------------------------------------------------------------------- 
+
+	
+
+*  STANDARDIZED - MAIN RESULTS - HV and HVPK 
+
+
+
+use ECD_compiled.dta, clear 
+
+
+	keep if CT==1
+	keep if  child_treat_status==4 | child_treat_status==8 | child_treat_status==9 
+	
+	*Keep only those added at year 1
+	keep if added_year2==0
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+	
+
+
+eststo clear 
+local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income has_base_acskill has_base_exfunction
+global  treatmentshv HV_10 HV_20 HV_30
+global treatmentshvpk HVPK_10 HVPK_20 HVPK_30
+local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+
+
+
+foreach outcome of local outcomes{
+	reg `outcome' $treatmentshv  $treatmentshvpk `controls', cluster(VILLAGE_ID)
+	eststo 
+	estadd scalar r_squared = e(r2)
+	
+}
+
+
+
+* See how it looks in Stata:
+esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant nogaps stats(r_squared N, fmt(3 0))
+	  
+	  
+*Fragment for tex 
+esttab  est1 est2 est3 est4 using "$results/tables/reg3_spilloversv2.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatmentshv $treatmentshvpk `controls') order($treatmentshv  $treatmentshvpk `controls') constant nogaps
+
+
+
 
 
 *--------------------------------------------------------------------------------------------------------
@@ -324,11 +500,288 @@ esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskil
 */
 
 
+
+*--------------------------------------------------------------------------------------------------------
+*					TABLE 7.v1 EFFECTS BY INCOME QUARTILES 
+*
+*---------------------------------------------------------------------------------------------------------
+
+	
+
+
+	use ECD_compiled.dta, clear 
+	
+	*Income quartiles of the full sample 
+	xtile quart_income=ln_household_income, nq(4)
+	
+	
+	keep if  CT==1 
+	drop if  child_treat_status==4 | child_treat_status==8  
+	
+	*Keep only those added at year 1
+	keep if added_year2==0
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+	
+	
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls  zbase_acskill zbase_exfunction Gender base_age_year has_base_acskill has_base_exfunction
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+
+forvalues i=1/4 {
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments `controls' if quart_income==`i', cluster(VILLAGE_ID)
+		eststo `outcome'`i'
+		test hvonly=pkonly
+		estadd scalar p_diff1 = r(p)
+		test hvonly=pk_hv 
+		estadd scalar p_diff2 = r(p)
+		test pkonly=pk_hv 
+		estadd scalar p_diff3 = r(p)
+	
+}
+}
+
+
+
+
+* See how it looks in Stata - Academic Skills:
+esttab zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_acskill3 zend_acskill3 zmid_acskill4 zend_acskill4  , se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_acskill3 zend_acskill3 zmid_acskill4 zend_acskill4 using "$results/tables/acskills_inc_quart.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+
+* See how it looks in Stata - Executive Function:
+esttab zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2 zmid_exfunction3 zend_exfunction3 zmid_exfunction4, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab  zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2 zmid_exfunction3 zend_exfunction3 zmid_exfunction4 zend_exfunction4 using "$results/tables/exfunctions_inc_quart.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*					TABLE 7.v2 EFFECTS BY BASELINE ACSKILL 
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+	use ECD_compiled.dta, clear 
+	
+	*Median base academic skills of full sample
+	xtile median_base_acskill=zbase_acskill, nq(2) 
+
+
+
+	keep if  CT==1 
+	drop if  child_treat_status==4 | child_treat_status==8  
+	
+	*Keep only those added at year 1
+	keep if added_year2==0
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+	
+	
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls zbase_exfunction Gender base_age_year ln_household_income has_base_exfunction
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction 
+
+forvalues i=1/2 {
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments `controls' if median_base_acskill==`i', cluster(VILLAGE_ID)
+		eststo `outcome'`i'
+		test hvonly=pkonly
+		estadd scalar p_diff1 = r(p)
+		test hvonly=pk_hv 
+		estadd scalar p_diff2 = r(p)
+		test pkonly=pk_hv 
+		estadd scalar p_diff3 = r(p)
+	
+}
+}
+
+
+
+
+* See how it looks in Stata - Academic Skills and Executive Function:
+esttab zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab   zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2 using "$results/tables/mainreg_median_acskill.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*					TABLE 7.v3 EFFECTS BY BASELINE EF
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+	use ECD_compiled.dta, clear 
+	
+	*Median Executive function of full sample 
+	xtile median_base_exfunction=zbase_exfunction, nq(2) 
+
+
+
+	keep if  CT==1 
+	drop if  child_treat_status==4 | child_treat_status==8  
+	
+	*Keep only those added at year 1
+	keep if added_year2==0
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+	
+	
+
+	*STANDARDIZED - MAIN RESULTS 
+	eststo clear 
+	*global treatments homevisit2 preschool2 both2 
+	global treatments hvonly pkonly pk_hv
+
+	local controls zbase_acskill Gender base_age_year ln_household_income  has_base_acskill
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction 
+
+forvalues i=1/2 {
+	foreach outcome of local outcomes{
+		reg `outcome' $treatments `controls' if median_base_exfunction==`i', cluster(VILLAGE_ID)
+		eststo `outcome'`i'
+		test hvonly=pkonly
+		estadd scalar p_diff1 = r(p)
+		test hvonly=pk_hv 
+		estadd scalar p_diff2 = r(p)
+		test pkonly=pk_hv 
+		estadd scalar p_diff3 = r(p)
+	
+}
+}
+
+
+
+
+* See how it looks in Stata - Academic Skills and Executive Function:
+esttab zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  
+	  	  
+	  
+*Fragment for tex 
+esttab   zmid_acskill1 zend_acskill1 zmid_acskill2 zend_acskill2 zmid_exfunction1 zend_exfunction1 zmid_exfunction2 zend_exfunction2 using "$results/tables/mainreg_median_exfunction.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments  `controls') order($treatments  `controls') constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0))
+
+
+
+*-------------------------------------------------------------------------------
+*						APPENDIX TABLE ATTRITION RATES BY PROGRAM 
+*
+*------------------------------------------------------------------------------- 
+
+	use ECD_compiled, clear  
+	
+	*Keep only project children 
+	keep if  CT==1 
+
+	*Count attrition
+	forvalues i=1/4{
+	count if attrited_year1==1 & treat1==`i'
+	local attrited_year1_`i'=r(N)
+	
+	}
+	
+	*Count continued
+	forvalues i=1/4{
+	count if attrited_year1==0 & treat1==`i'
+	local continued_year2_`i'=r(N)
+	
+	}
+	
+	*Count new in Year 1 
+	forvalues i=1/4{
+	count if added_year2==0 & treat1==`i'
+	local added_year1_`i'=r(N)
+	
+	}
+	
+	*Count new in Year 2 
+	forvalues i=1/4{
+	count if added_year2==1 & treat1==`i'
+	local added_year2_`i'=r(N)
+	
+	}
+	
+	local treatments PK HV PK-HV Control
+
+
+
+
+capture file close st
+	
+	file open 	st using "$results/tables/attrition.tex", write replace
+		*file write 	st _n  "\begin{tabular}{ccc}" 
+		*file write 	st _n "\hline \hline \\"
+		file write 	st _n "\textbf{Treatment} & \textbf{Added Year 1} & \textbf{Added Year 2} & \textbf{Continued Year 2} & \textbf{Attrited Year 1}  \\ \hline"
+		file write 	st  " PK & `added_year1_1' & `added_year2_1' & `continued_year2_1' & `attrited_year1_1' \\  "	
+		file write 	st  " HV & `added_year1_2' & `added_year2_2' & `continued_year2_2' & `attrited_year1_2' \\  "
+		file write 	st  " PK-HV & `added_year1_3' &  `added_year2_3' & `continued_year2_3' & `attrited_year1_3' \\  "
+		file write 	st  " Control & `added_year1_4' & `added_year2_4' & `continued_year2_4' & `attrited_year1_4' \\  "
+				*file write 	st _n " \hline"
+		
+		
+		*file write 	st _n "\end{tabular}"
+	file close 	st
+
+
+
+
 	
 	
 	
+
+capture file close st
 	
+	file open 	st using "interviews.tex", write replace
+		*file write 	st _n  "\begin{tabular}{llllllll}" 
+		*file write 	st _n "\hline\hline \\"
+		file write 	st _n "\textbf{Day} & \textbf{Location} & \textbf{Team} & \textbf{TIK} & \textbf{\# C}  & \textbf{IP} & \textbf{IL} & \textbf{COVID} \\ \hline"
+		foreach today of local dates {
+			foreach i of local levels{
+				file write 	st _n %td (`today') "& `location2_`today'_`i'' & Pura Vida & `puravidatot_`today'_`i'' &  `puravidacal_`today'_`i'' & `puravidaexpint_`today'_`i''  & `puravidaexpinvit_`today'_`i'' & \multirow{2}{*}{`covid_`today''} \\  "
+				file write 	st _n %td (`today') "& `location1_`today'_`i'' & Dream Team & `dreamteamtot_`today'_`i'' &  `dreamteamcal_`today'_`i'' & `dreamteamexpint_`today'_`i''  & `dreamteamexpinvit_`today'_`i'' & \\   "
+		}
+			file write 	st _n " \hline"
+		
+		}
+		
 	
+		
+		*file write 	st _n "\end{tabular}"
+	file close 	st
+
 	
 
 
