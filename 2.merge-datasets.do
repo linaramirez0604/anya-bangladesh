@@ -419,7 +419,51 @@ label define ctype 1 "10 students, 1 teacher" 2 "20 students, 2 teachers" 3 "30 
 label values ctype ctype 
 
 
+save "$output/temp.dta", replace 
 
+
+*---------------------------------------------------------------------------------------------------------
+*					IDENTIFYING THE PROJECT CHILD
+*	CT had assigned to the Project Child those that were sibilings or cousins in the hv and 
+*	hvpk treatments. In here we correct the project child
+*------------------------------------------------------------------------------------------------------------
+
+import excel "$input/project-child-hv-hvpk.xlsx", sheet("Sheet1") firstrow clear
+
+duplicates drop 
+gen proj_child=1 
+
+merge 1:1 CHILD_ID using  "$output/temp.dta"
+keep if _merge!=1 
+drop _merge 
+
+
+save "$output/temp.dta", replace 
+
+
+
+import excel "$input/project-child-hv-hvpk.xlsx",  sheet("HV+prek") firstrow clear
+
+duplicates drop 
+gen proj_child=1
+
+merge 1:1 CHILD_ID using  "$output/temp.dta"
+keep if _merge!=1 
+drop _merge 
+
+
+*Apparently there are only sibilings of untreated kids.
+*tab child_treat_status CT
+*proj_child corrects this: 
+*tab child_treat_status proj_child
+
+replace proj_child=1 if CT==1 & missing(proj_child) & (child_treat_status==4 | child_treat_status==8 | child_treat_status==9 | child_treat_status==10 )
+replace proj_child=0 if missing(proj_child) 
+
+order proj_child, after(CHILD_ID) 
+label define proj_child 1 "Proj Child" 0 "Sibiling/Cousin"
+label values proj_child proj_child 
+label var proj_child "Project Child (corrected)"
 
 
 *-------------------------------------------------------------------------------
@@ -570,22 +614,22 @@ label var base_acskill "Baseline AS"
 label var base_exfunction "Baseline EF" 
 label var Gender "Gender"
 label var base_age_year "Age"
-label var mid_acskill "Midline AS" 
-label var end_acskill "Endline AS"
-label var mid_exfunction "Midline EF"
-label var end_exfunction "Endline EF"
+label var mid_acskill "End Y1 AS" 
+label var end_acskill "End Y2 AS"
+label var mid_exfunction "End Y1 EF"
+label var end_exfunction "End Y2 EF"
 label var  base_asq_overall "Baseline ASQ" 
-label var  mid_asq_overall "Midline ASQ" 
-label var end_asq_overall "Endline ASQ"
-label var zbase_acskill "Baseline AS (std)" 
-label var zbase_exfunction "Baseline EF (std)"
-label var zmid_acskill "Midline AS(std)" 
-label var zend_acskill "Endline AS (std)" 
-label var zmid_exfunction "Midline EF (std)" 
-label var zend_exfunction "Endline EF (std)"
-label var zbase_overall "Baseline ASQ (std)"
-label var zmid_overall "Midline ASQ (std)" 
-label var zend_overall "Endline ASQ (std)"
+label var  mid_asq_overall "End Y1 ASQ" 
+label var end_asq_overall "End Y2 ASQ"
+label var zbase_acskill "Baseline AS" 
+label var zbase_exfunction "Baseline EF"
+label var zmid_acskill "End Y1 AS" 
+label var zend_acskill "End Y2 AS" 
+label var zmid_exfunction "End Y1 EF" 
+label var zend_exfunction "End Y2 EF"
+label var zbase_overall "Baseline ASQ"
+label var zmid_overall "End Y1 ASQ" 
+label var zend_overall "End Y2 ASQ"
 label var mother_education "Mother Education" 
 label var household_income "Household Income"
 label var HV_10 "HV -- 10"
@@ -606,8 +650,26 @@ rename treatment3 pk_hv
 label var pk_hv "Pre-K + HV"
 rename treatment4 control 
 label var control "Control"
-	
-	* Generating variables for descriptive statistics 
+
+label define hvonly 1 "HV only" 0 "Otherwise"
+label define pkonly 1 "PK only" 0 "Otherwise"
+label define pk_hv 1 "PK+HV" 0 "Otherwise"
+label values hvonly hvonly 
+label values pkonly pkonly 
+label values pk_hv pk_hv 
+
+
+gen female=1 if Gender==0 
+replace female=0 if Gender==1 
+order female, after(Gender)
+drop Gender 
+rename female Gender 
+label define Gender 1 "female" 0 "male"
+label values Gender Gender
+label var Gender "Female"
+
+
+* Generating variables for descriptive statistics 
 	
 gen HV_treated=1 if child_treat_status<4 
 replace HV_treated=0 if child_treat_status==4 
@@ -635,6 +697,33 @@ label var mother_education "Mother's Education"
 
 drop if missing(child_treat_status)
 
+
+*Generating categorical variable for mother's and father's education 
+
+
+* Beginning 2011: mandatory elementary school cycle of eight years, followed by four years of secondary education. 
+
+label define categories 1 "No education" 2 "Some primary" 3 "Finished primary" 4 "Some secondary" 5 "Finished secondary" 6 "Postgraduate"
+local education father mother
+
+	foreach var of local education {
+		
+		gen `var'_educ_cat=1 if `var'_education==0 
+		replace `var'_educ_cat=2 if `var'_education>0 & `var'_education<8 
+		replace `var'_educ_cat=3 if `var'_education==8 
+		replace `var'_educ_cat=4 if `var'_education>8 &  `var'_education<12
+		replace `var'_educ_cat=5 if `var'_education==12
+		replace `var'_educ_cat=6 if `var'_education>12 & !missing(`var'_education)
+		replace `var'_educ_cat=. if missing(`var'_education)
+		order `var'_educ_cat, after(`var'_education)
+		label var `var'_educ_cat "`var' education - categories"
+		label values `var'_educ_cat categories 
+		tab `var'_educ_cat, gen(`var'_educ_)
+			order `var'_educ_1 `var'_educ_2 `var'_educ_3 `var'_educ_4 `var'_educ_5 `var'_educ_6, after(`var'_educ_cat)
+		
+	} 
+
+	
 *Log of household income
 gen ln_household_income=ln(household_income)
 label var ln_household_income "Household income"
