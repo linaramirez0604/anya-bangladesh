@@ -5,7 +5,7 @@ PROJECT: BANGLADESH EDUCATION PROJECT
 TOPIC: PRELIMINARY ANALYSIS 
 AUTHOR: LINA RAMIREZ 
 DATE CREATED: 26/01/2021
-LAST MODIFIED: 30/03/2021
+LAST MODIFIED: 21/07/2021
 
 PURPOSE: Preliminary analysis. Based on "analysis by Anya suggestion.dta" by Tanvir Ahmed and word document "Anya suggested analysis plan". 
 
@@ -200,7 +200,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg1_std_v2.tex", label fragm
 
 *-------------------------------------------------------------------------------
 *			TABLE 3. v3 REGRESSION - ITT 
-*	Eliminating kids added on year 2, keeping only those that didn't attrit (Project_continuation==1) assigning 0 to missing values in baseline scores 
+*	Eliminating kids added on year 2, keeping only those that continued. Assigning 0 to missing values in baseline scores 
 *------------------------------------------------------------------------------- 
 
 	
@@ -209,7 +209,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg1_std_v2.tex", label fragm
 	keep if  CT==1 
 	drop if  child_treat_status==4 | child_treat_status==8  
 	keep if added_year2==0
-	keep if Project_continuation=="Yes"
+	drop if Project_continuation=="No" & !treat1(control)
 	
 	
 	*Assigning 0 to missing at baseline 
@@ -409,7 +409,7 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg3_spillovers.tex", label f
 
 
 
-use ECD_compiled.dta, clear 
+	use ECD_compiled.dta, clear 
 
 
 	keep if CT==1
@@ -457,8 +457,8 @@ esttab  est1 est2 est3 est4 using "$results/tables/reg3_spilloversv2.tex", label
 
 
 *--------------------------------------------------------------------------------------------------------
-*					TABLE 6. SPILLOVER REGRESSIONS - SIBILLINGS 
-*
+*					TABLE 6.v1 SPILLOVER REGRESSIONS - SIBILLINGS 
+*			Siblings of treated kids vs siblings of untreated kids and control. 
 *---------------------------------------------------------------------------------------------------------
 
 
@@ -468,24 +468,39 @@ use ECD_compiled.dta, clear
 
 *Keep only siblings and cousings 
 keep if proj_child!=1
+*Keep only those added in year2 (only 50 siblings were added in year1)
+keep if added_year2==1
 
 	
-	*Assigning 0 to missing at baseline 
-	local baseline acskill exfunction
-	foreach var of local baseline {
-	replace zbase_`var'=0 if missing(zbase_`var')
+	*Assigning 0 to missing at midline (as midline is the baseline for siblings/cousings)
+	local midline acskill exfunction
+	foreach var of local midline {
+	replace zmid_`var'=0 if missing(zmid_`var')
 	}
 	
 
 *a. spillovers of HV program on siblings
 
+gen siblings_PK=1 if treat1==1 & (child_treat_status!=4 & child_treat_status!=8) 
+replace siblings_PK=0 if missing(siblings_PK) 
+
+*gen siblings_PK=1 if treat1==1 
+
+
+
 gen siblings_HV=1 if treat1==2 & (child_treat_status!=4 & child_treat_status!=8) 
 replace siblings_HV=0 if missing(siblings_HV)
+*gen siblings_HV=1 if treat1==2 
+
+
 
 gen siblings_HVPK=1 if treat1==3 & (child_treat_status!=4 & child_treat_status!=8) 
-replace siblings_HV=0 if missing(siblings_HV)
-replace siblings_HVPK=0 if missing(siblings_HVPK)
+replace siblings_HVPK=0 if missing(siblings_HVPK) 
+*gen siblings_HVPK=1 if treat1==3 
 
+
+
+label var siblings_PK "Sibling of PK kid"
 label var siblings_HV "Sibling of HV kid"
 label var siblings_HVPK "Sibling of HVPK kid"
 
@@ -498,15 +513,13 @@ label values group_age group_age
 
 
 	
-
-
 *  STANDARDIZED - SIBLINGS 
 eststo clear 
-local controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income has_base_acskill has_base_exfunction
+local controls zmid_acskill zmid_exfunction Gender base_age_year ln_household_income
 local parents_educ father_educ_2 father_educ_3 father_educ_4 father_educ_5 father_educ_6 mother_educ_2 mother_educ_3 mother_educ_4 mother_educ_5 mother_educ_6
 
-global treatments siblings_HV siblings_HVPK
-local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction 
+global treatments siblings_PK siblings_HV siblings_HVPK
+local outcomes zend_acskill zend_exfunction 
 	foreach outcome of local outcomes{
 		reg `outcome' $treatments `controls' `parents_educ', cluster(VILLAGE_ID)
 		eststo  
@@ -517,11 +530,11 @@ local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
 
 
 * See how it looks in Stata:
-esttab est1 est2 est3 est4, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps
+esttab est1 est2, se(3) replace label b(3) keep($treatments `controls') order($treatments `controls') constant nogaps
 
 	  
 *Fragment for tex 
-esttab est1 est2 est3 est4 using "$results/tables/reg4_spillovers.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments `controls') order($treatments `controls')  constant extracols(4 7) nogaps
+esttab est1 est2 using "$results/tables/reg4_spillovers.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments `controls') order($treatments `controls')  constant extracols(4 7) nogaps
 
 
 
