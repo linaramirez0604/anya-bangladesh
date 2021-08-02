@@ -158,7 +158,7 @@ esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/reg1_std
 	
 	*Keep only those added at year 1
 	keep if added_year2==0
-	drop if Project_continuation=="No" & treat1!=4
+	*drop if Project_continuation=="No" & treat1!=4
 	
 	*Assigning 0 to missing at baseline 
 	local baseline acskill exfunction

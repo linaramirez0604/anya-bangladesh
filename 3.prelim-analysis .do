@@ -986,8 +986,33 @@ esttab   zmid_acskill zend_acskill zmid_exfunction zend_exfunction using "$resul
 
 
 
+*--------------------------------------------------------------------------------------------------------
+*					GRAPH 
+*					Interaction term of median x treatments 
+*---------------------------------------------------------------------------------------------------------
 
 
+use ECD_compiled.dta, clear 
+	
+keep child_treat_status mid_acskill end_acskill mid_exfunction end_exfunction
+rename (mid_acskill mid_exfunction) (acskill1 exfunction1)
+rename (end_acskill end_exfunction) (acskill2 exfunction2)
+collapse acskill1 acskill2 exfunction1 exfunction2, by(child_treat_status)
+*reshape long acskill exfunction, i(child_treat_status) j(year)
+*reshape wide 
+
+	gen treatment=child_treat_status
+ graph bar acskill1 acskill2, over(treatment) legend(pos(6) cols(2) symxsize(4) order(1 "AC skills year 1" 2 "AC skills year 2")) note("1:HV-10 students-1 teacher, 2:HV-20 students-2 teachers, 3:HV-30 students-3 teachers" "4:HV-didn't get HV, 5 HV+preK-10 students-1 teacher, 6:HV+preK-20 students-2 teachers" "7: HV+preK-30 students-3 teacher, 8:HV+preK-only gets preK no HV, 9:Control, 10:Pre-K only") graphregion(color(white)) ylabel(0(5)30, nogrid angle(0))
+
+graph export "$results/graphs/acskills.png", replace  
+
+
+graph bar exfunction1 exfunction2, over(treatment) legend(pos(6) cols(2) symxsize(4) order(1 "EF skills year 1" 2 "EF skills year 2")) note("1:HV-10 students-1 teacher, 2:HV-20 students-2 teachers, 3:HV-30 students-3 teachers" "4:HV-didn't get HV, 5 HV+preK-10 students-1 teacher, 6:HV+preK-20 students-2 teachers" "7: HV+preK-30 students-3 teacher, 8:HV+preK-only gets preK no HV, 9:Control, 10:Pre-K only") graphregion(color(white)) ylabel(0(5)30, nogrid angle(0))
+
+graph export "$results/graphs/exfunction.png", replace  
+
+ 
+ 
 *-------------------------------------------------------------------------------
 *						APPENDIX TABLE ATTRITION RATES BY PROGRAM 
 *
