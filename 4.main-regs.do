@@ -215,7 +215,7 @@ esttab est1 est5 est2 est6 est3 est7 est4 est8  using "$results/tables/reg3_spil
 use ECD_compiled.dta, clear 
 
 *Keep only siblings and cousings (and all kids in control group)
-keep if proj_child!=1 | (proj_child==1 & treat1==4)
+keep if proj_child!=1
 *Keep only those added in year2 (only 50 siblings were added in year1)
 *keep if added_year2==1
 
