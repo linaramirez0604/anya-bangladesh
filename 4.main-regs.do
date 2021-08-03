@@ -72,7 +72,7 @@ REQUIREMENTS: Run 0.master.do to set paths correctly.
 	keep if  proj_child==1 
 	drop if  child_treat_status==4 | child_treat_status==8  
 	keep if added_year2==0
-	drop if Project_continuation=="No" & treat1!=4
+	*drop if Project_continuation=="No" & treat1!=4
 	
 	*Assigning 0 to missing at baseline 
 	local baseline acskill exfunction
@@ -735,7 +735,7 @@ esttab   zmid_acskill_wo zmid_acskill_w zend_acskill_wo zend_acskill_w  zmid_exf
 	*Drop control 
 	drop if  child_treat_status==9 
 	keep if added_year2==0
-	drop if Project_continuation=="No" 
+	*drop if Project_continuation=="No" 
 	
 	*Change treatment variables
 	replace hvonly=0 if  child_treat_status==4
