@@ -23,7 +23,7 @@ REQUIREMENTS: Run 0.master.do to set paths correctly.
 	set scheme s2mono 
 
 
-	cd "$output"
+	cd "$tot"
 
 	use ECD_compiled, clear  
 	
@@ -69,7 +69,8 @@ REQUIREMENTS: Run 0.master.do to set paths correctly.
 	use ECD_compiled.dta, clear 
 	
 	*Keep relevant observations 
-	keep if  proj_child==1 
+	keep if  proj_child==1
+	*dropping those children that are in HV-Didn't get HV and HV+prek - Only gets Prek 
 	drop if  child_treat_status==4 | child_treat_status==8  
 	keep if added_year2==0
 	*drop if Project_continuation=="No" & treat1!=4
@@ -200,8 +201,17 @@ esttab est1 est5 est2 est6 est3 est7 est4 est8, se(3) replace label b(3) keep($t
 *Fragment for tex 
 esttab est1 est5 est2 est6 est3 est7 est4 est8  using "$results/tables/reg3_spilloversv2.tex",  replace label starlevels(* 0.10 ** 0.05 *** 0.01) fragment tex se(3) b(3) keep($treatmentshv $treatmentshvpk) order($treatmentshv  $treatmentshvpk) constant nogaps stats(empty r_squared N, labels(" " "R-squared" "N") fmt(0 3 0))  indicate("Controls = ${controls}", labels("\checkmark" " ")) 
 
+***checking to see siblings***
 
+use ECD_compiled.dta, clear 
 
+bysort RECORD_ID: gen number_members=_n
+egen max_members=max(number_members), by(RECORD_ID)
+br proj_child child_type if max_members==1
+tab proj_child if max_members==1
+tab child_type if max_members==1
+
+***looks like there are 526 kids with record id 
 
 *-------------------------------------------------------------------------------
 *			TABLE 6. SPILLOVER EFFECTS - SIBLINGS AND COUSINS
@@ -213,6 +223,7 @@ esttab est1 est5 est2 est6 est3 est7 est4 est8  using "$results/tables/reg3_spil
 
 
 use ECD_compiled.dta, clear 
+
 
 *Keep only siblings and cousings (and all kids in control group)
 keep if proj_child!=1
