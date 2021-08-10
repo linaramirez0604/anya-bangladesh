@@ -23,7 +23,7 @@ REQUIREMENTS: Run 0.master.do to set paths correctly.
 	set scheme s2mono 
 
 
-	cd "$tot"
+	cd "$output"
 
 	use ECD_compiled, clear  
 	
