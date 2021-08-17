@@ -136,7 +136,160 @@ esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/reg1_std
 
 	use ECD_compiled.dta, clear 
 	
-*We need attendance to perform the 2sls 
+	
+	
+	*Keep relevant observations 
+	keep if  proj_child==1 
+	drop if  child_treat_status==4 | child_treat_status==8  
+	keep if added_year2==0
+	*drop if Project_continuation=="No" & treat1!=4
+	
+	*Assigning 0 to missing at baseline 
+	local baseline acskill exfunction
+	foreach var of local baseline {
+	replace zbase_`var'=0 if missing(zbase_`var')
+	}
+
+
+	**** WITH THE MAX  ****
+	
+	eststo clear 
+	global treatments hvonly pkonly pk_hv
+	global controls  zbase_acskill zbase_exfunction Gender base_age_year ln_household_income has_base_acskill has_base_exfunction father_educ_2 father_educ_3 father_educ_4 father_educ_5 father_educ_6 mother_educ_2 mother_educ_3 mother_educ_4 mother_educ_5 mother_educ_6
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+ 
+ 
+ 
+ 
+ *Without controls 
+ foreach outcome of local outcomes{
+	ivregress 2sls `outcome'  (pkonly hvonly pk_hv=inst_pkonly_max  inst_hvonly_max inst_hvpk_max), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+ 
+ 
+ *With controls 
+foreach outcome of local outcomes{
+	ivregress 2sls `outcome' $controls  (pkonly hvonly pk_hv=inst_pkonly_max  inst_hvonly_max inst_hvpk_max), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est5 est2 est6 est3 est7 est4 est8, se(3) replace label b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+	  	  
+
+
+*Fragment for tex 
+esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/tot_max.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0)) indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+
+	
+	
+	
+	**** WITH THE MEAN ****	
+	eststo clear 
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+	
+	
+	
+ *Without controls 
+ foreach outcome of local outcomes{
+	ivregress 2sls `outcome'  (pkonly hvonly pk_hv=inst_pkonly_mean inst_hvonly_mean inst_hvpk_mean), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+ 
+ 
+ *With controls 
+foreach outcome of local outcomes{
+	ivregress 2sls `outcome' $controls  (pkonly hvonly pk_hv=inst_pkonly_mean  inst_hvonly_mean inst_hvpk_mean), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est5 est2 est6 est3 est7 est4 est8, se(3) replace label b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+	  	  
+
+
+*Fragment for tex 
+esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/tot_mean.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0)) indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+
+	
+	
+		**** WITH THE P75 ****	
+	eststo clear 
+	local outcomes zmid_acskill zend_acskill zmid_exfunction zend_exfunction
+	
+	
+	
+ *Without controls 
+ foreach outcome of local outcomes{
+	ivregress 2sls `outcome'  (pkonly hvonly pk_hv=inst_pkonly_p75 inst_hvonly_p75 inst_hvpk_p75), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+ 
+ 
+ *With controls 
+foreach outcome of local outcomes{
+	ivregress 2sls `outcome' $controls  (pkonly hvonly pk_hv=inst_pkonly_p75 inst_hvonly_p75 inst_hvpk_p75), vce(cluster VILLAGE_ID)
+	eststo 
+	test hvonly=pkonly
+	estadd scalar p_diff1 = r(p)
+	test hvonly=pk_hv 
+	estadd scalar p_diff2 = r(p)
+	test pkonly=pk_hv 
+	estadd scalar p_diff3 = r(p)
+	
+}
+
+
+* See how it looks in Stata:
+esttab est1 est5 est2 est6 est3 est7 est4 est8, se(3) replace label b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post estimation" "HV=PK" "HV=HV+PK" "PK=HV+PK""N") fmt(0 3 3 3 0)) nogaps  indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+	  	  
+
+
+*Fragment for tex 
+esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/tot_p75.tex", label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01) se(3) b(3) keep($treatments) order($treatments) constant nogaps stats(empty p_diff1 p_diff2 p_diff3 N, labels("Post-estimation" "HV=PK" "HV=PK+HV" "PK=PK+HV""Number of observations") fmt(0 3 3 3 0)) indicate("Controls = ${controls}", labels("\checkmark" " ")) 
+
+	
 
 
 

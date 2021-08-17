@@ -753,6 +753,258 @@ local baseline acskill exfunction
 order has_*, after(zend_exfunction)
 
 
+save "$output/temp.dta", replace
+
+*--------------------------------------------------------------------------------------------------------
+*						VILLAGE_ID 
+*
+*---------------------------------------------------------------------------------------------------------
+
+import excel "$input/village-list.xlsx",  sheet("Data") firstrow clear
+
+rename vid VILLAGE_ID
+
+merge 1:m VILLAGE_ID using "$output/temp.dta"
+
+rename vname Village_Name
+label var Village_Name "Village Name"
+label var VILLAGE_ID "VILLAGE ID"
+
+drop _merge 
+
+save "$output/temp.dta", replace
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*						ATTENDANCE DATA 
+*
+*---------------------------------------------------------------------------------------------------------
+
+import excel "$input/attendance-hv-and-pk.xlsx", sheet("Sheet1") firstrow clear 
+
+rename NumberofHomeVisitinApril20 attendance_april_2017 
+rename NumberofHomeVisitinMay2017 attendance_may_2017 
+rename NumberofHomeVisitinJune201 attendance_june_2017
+rename  NumberofHomeVisitinJuly201 attendance_july_2017 
+rename NumberofHomeVisitinAugust2 attendance_august_2017 
+rename NumberofHomeVisitinSeptembe attendance_sept_2017 
+rename NumberofHomeVisitinOctobar attendance_oct_2017 
+rename  NumberofHomeVisitinNovember attendance_nov_2017 
+rename  NumberofHomeVisitinDecember attendance_dec_2017 
+rename NumberofHomeVisitinJanuary attendance_jan_2018
+rename  NumberofHomeVisitinFebruary attendance_feb_2018 
+rename NumberofHomeVisitinMarch20 attendance_mar_2018 
+rename U attendance_apr_2018 
+rename NumberofHomeVisitinMay2018 attendance_may_2018 
+rename  W attendance_june_2018 
+rename  X attendance_july_2018 
+rename  Y attendance_aug_2018 
+rename Z  attendance_sept_2018 
+rename AA attendance_oct_2018 
+rename AB attendance_nov_2018 
+
+drop CT CB Gender CHILD_NUMBER
+
+merge 1:1 CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID  using "$output/temp.dta"
+
+rename _merge merge_attendance_hv_and_pk 
+
+save "$output/temp.dta", replace
+
+import excel "$input/attendance-hv-only.xlsx", sheet("Sheet1") firstrow clear 
+
+
+rename HomeVisitinApril2017 attendance_april_2017
+rename HomeVisitinMay2017 attendance_may_2017
+rename HomeVisitinJune2017 attendance_june_2017
+rename HomeVisitinJuly2017 attendance_july_2017
+rename HomeVisitinAugust2017 attendance_august_2017
+rename HomeVisitinSeptember2017 attendance_sept_2017
+rename HomeVisitinOctobar2017 attendance_oct_2017
+rename HomeVisitinNovember2017 attendance_nov_2017
+rename HomeVisitinDecember2017 attendance_dec_2017
+rename HomeVisitinJanuary2018 attendance_jan_2018
+rename HomeVisitinFebruary2018 attendance_feb_2018
+rename HomeVisitinMarch2018 attendance_mar_2018
+rename HomeVisitinApril2018 attendance_apr_2018
+rename HomeVisitinMay2018 attendance_may_2018
+rename HomeVisitinJune2018 attendance_june_2018
+rename HomeVisitinJuly2018 attendance_july_2018
+rename HomeVisitinAugust2018 attendance_aug_2018
+rename HomeVisitinSeptember2018 attendance_sept_2018
+rename HomeVisitinOctobar2018 attendance_oct_2018
+rename HomeVisitinNovember2018 attendance_nov_2018
+
+
+drop CT CB Gender CHILD_NUMBER
+
+merge 1:1 CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID  using "$output/temp.dta"
+
+rename _merge merge_attendance_hv_only 
+
+save "$output/temp.dta", replace
+
+
+
+import excel "$input/attendance-pk-only.xlsx", sheet("Sheet1") firstrow clear 
+
+
+rename NumberofclassattendedinSept attendance_sept_2017
+rename  NumberofclassattendedinOcto attendance_oct_2017
+rename  NumberofclassattendedinNove attendance_nov_2017
+rename NumberofclassattendedinJanu attendance_jan_2018
+rename  NumberofclassattendedinFebr attendance_feb_2018
+rename NumberofclassattendedinMarc attendance_mar_2018
+rename NumberofclassattendedinApri attendance_apr_2018
+rename NumberofclassattendedinMay attendance_may_2018
+rename NumberofclassattendedinJune attendance_june_2018
+rename NumberofclassattendedinJuly attendance_july_2018
+rename NumberofclassattendedinAugu attendance_aug_2018
+rename  U attendance_sept_2018
+rename V attendance_oct_2018
+rename NumberofclassattendedinDec attendance_dec_2018
+
+
+drop CT CB Gender CHILD_NUMBER Project_continuation 
+
+merge 1:1 CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID  using "$output/temp.dta"
+
+rename _merge merge_attendance_pk_only 
+
+
+order attendance*, after(child_type)
+
+
+
+local attendance april_2017 may_2017 june_2017 july_2017 august_2017 sept_2017 oct_2017 nov_2017  dec_2017 jan_2018 feb_2018 mar_2018 apr_2018 may_2018 june_2018 july_2018 aug_2018 sept_2018 oct_2018 nov_2018 dec_2018
+foreach var of local attendance{
+	
+	gen participated_`var'=1 if !missing(attendance_`var') & attendance_`var'!=0
+	replace  participated_`var'=0 if missing(participated_`var') & attendance_`var'==0
+	label var participated_`var' "1=attended at least once"
+}
+
+egen total_sessions_2017=rowtotal(attendance_april_2017 attendance_may_2017 attendance_june_2017 attendance_july_2017 attendance_august_2017 attendance_sept_2017 attendance_oct_2017 attendance_nov_2017  attendance_dec_2017)
+egen total_sessions_2018=rowtotal(attendance_jan_2018 attendance_feb_2018 attendance_mar_2018 attendance_apr_2018 attendance_may_2018 attendance_june_2018 attendance_july_2018 attendance_aug_2018 attendance_sept_2018 attendance_oct_2018 attendance_nov_2018 attendance_dec_2018)
+egen total_sessions_2017_2018=rowtotal(attendance_april_2017 attendance_may_2017 attendance_june_2017 attendance_july_2017 attendance_august_2017 attendance_sept_2017 attendance_oct_2017 attendance_nov_2017  attendance_dec_2017 attendance_jan_2018 attendance_feb_2018 attendance_mar_2018 attendance_apr_2018 attendance_may_2018 attendance_june_2018 attendance_july_2018 attendance_aug_2018 attendance_sept_2018 attendance_oct_2018 attendance_nov_2018 attendance_dec_2018)
+
+
+label var total_sessions_2017 "Total number of sessions in 2017 that child attended to at least one session"
+label var total_sessions_2018 "Total number of sessions in 2018 that child attended to at least one session"
+label var total_sessions_2017_2018 "Total number of sessions in 2017 and 2018 that child attended to at least one session"
+
+
+
+
+
+egen total_months_2017=rowtotal(participated_april_2017 participated_may_2017 participated_june_2017 participated_july_2017 participated_august_2017 participated_sept_2017 participated_oct_2017 participated_nov_2017  participated_dec_2017) 
+egen total_months_2018=rowtotal(participated_jan_2018 participated_feb_2018 participated_mar_2018 participated_apr_2018 participated_may_2018 participated_june_2018 participated_july_2018 participated_aug_2018 participated_sept_2018 participated_oct_2018 participated_nov_2018 participated_dec_2018)
+egen total_months_2017_2018=rowtotal(participated_april_2017 participated_may_2017 participated_june_2017 participated_july_2017 participated_august_2017 participated_sept_2017 participated_oct_2017 participated_nov_2017  participated_dec_2017 participated_jan_2018 participated_feb_2018 participated_mar_2018 participated_apr_2018 participated_may_2018 participated_june_2018 participated_july_2018 participated_aug_2018 participated_sept_2018 participated_oct_2018 participated_nov_2018 participated_dec_2018)
+
+
+label var total_months_2017 "Number of months in 2017 that child attended to at least one session"
+label var total_months_2018 "Number of months in 2018 that child attended to at least one session"
+label var total_months_2017_2018 "Number of months in 2017 and 2018 that child attended to at least one session"
+
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*						CREATING INSTRUMENTS
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+*VERSION 1: Dummies created with the max. 
+
+forvalues i=1/3 {
+sum total_months_2017_2018 if treat1==`i'
+local max_total_`i'=`r(max)'
+}
+
+gen inst_pkonly_max=1 if total_months_2017_2018==`max_total_1' & treat1==1
+replace  inst_pkonly_max=0 if missing(inst_pkonly_max)
+gen inst_hvonly_max=1 if total_months_2017_2018==`max_total_2'  & treat1==2
+replace  inst_hvonly_max=0 if missing(inst_hvonly_max)
+gen inst_hvpk_max=1 if total_months_2017_2018==`max_total_3'  & treat1==3
+replace  inst_hvpk_max=0 if missing(inst_hvpk_max)
+
+
+
+
+*VERSION 2: Dummies created with the mean. 
+
+forvalues i=1/3 {
+sum total_months_2017_2018 if treat1==`i'
+local mean_total_`i'=`r(mean)'
+}
+
+gen inst_pkonly_mean=1 if total_months_2017_2018>=`mean_total_1' & treat1==1
+replace  inst_pkonly_mean=0 if missing(inst_pkonly_mean)
+gen inst_hvonly_mean=1 if total_months_2017_2018>=`mean_total_2'  & treat1==2
+replace  inst_hvonly_mean=0 if missing(inst_hvonly_mean)
+gen inst_hvpk_mean=1 if total_months_2017_2018>=`mean_total_3'  & treat1==3
+replace  inst_hvpk_mean=0 if missing(inst_hvpk_mean)
+
+
+
+* VERSION 3: Dummies created with the 75th percentile 
+
+
+forvalues i=1/3 {
+sum total_months_2017_2018 if treat1==`i', d
+local p75_total_`i'=`r(p75)'
+}
+
+gen inst_pkonly_p75=1 if total_months_2017_2018>=`p75_total_1' & treat1==1
+replace  inst_pkonly_p75=0 if missing(inst_pkonly_p75)
+gen inst_hvonly_p75=1 if total_months_2017_2018>=`p75_total_2'  & treat1==2
+replace  inst_hvonly_p75=0 if missing(inst_hvonly_p75)
+gen inst_hvpk_p75=1 if total_months_2017_2018>=`p75_total_3'  & treat1==3
+replace  inst_hvpk_p75=0 if missing(inst_hvpk_p75)
+
+
+
+
+* VERSION 4: Dummies created with the median 
+
+forvalues i=1/3 {
+sum total_months_2017_2018 if treat1==`i', d
+local p50_total_`i'=`r(p50)'
+}
+
+gen inst_pkonly_p50=1 if total_months_2017_2018>=`p50_total_1' & treat1==1
+replace  inst_pkonly_p50=0 if missing(inst_pkonly_p50)
+gen inst_hvonly_p50=1 if total_months_2017_2018>=`p50_total_2'  & treat1==2
+replace  inst_hvonly_p50=0 if missing(inst_hvonly_p50)
+gen inst_hvpk_p50=1 if total_months_2017_2018>=`p50_total_3'  & treat1==3
+replace  inst_hvpk_p50=0 if missing(inst_hvpk_p50)
+
+
+
+
+
+* VERSION 5: Dummies created with the 25th percentile 
+
+forvalues i=1/3 {
+sum total_months_2017_2018 if treat1==`i', d
+local p25_total_`i'=`r(p25)'
+}
+
+gen inst_pkonly_p25=1 if total_months_2017_2018>=`p25_total_1' & treat1==1
+replace  inst_pkonly_p25=0 if missing(inst_pkonly_p25)
+gen inst_hvonly_p25=1 if total_months_2017_2018>=`p25_total_2'  & treat1==2
+replace  inst_hvonly_p25=0 if missing(inst_hvonly_p25)
+gen inst_hvpk_p25=1 if total_months_2017_2018>=`p25_total_3'  & treat1==3
+replace  inst_hvpk_p25=0 if missing(inst_hvpk_p25)
+
+
+
+
+
+
+
 
 save "$output/ECD_compiled.dta", replace
 erase "$output/Early childhood Development.dta"

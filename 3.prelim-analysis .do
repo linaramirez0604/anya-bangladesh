@@ -318,6 +318,10 @@ graph export "$results/graphs/reg1_std.pdf", replace
 *
 *------------------------------------------------------------------------------- 
 
+
+
+
+
 	use ECD_compiled.dta, clear 
 	
 *We need attendance to perform the 2sls 
