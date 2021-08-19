@@ -910,10 +910,28 @@ label var total_months_2017_2018 "Number of months in 2017 and 2018 that child a
 
 
 
+
 *--------------------------------------------------------------------------------------------------------
-*						CREATING INSTRUMENTS
+*						CREATING ATTENDANCE VARIABLES 
 *
 *---------------------------------------------------------------------------------------------------------
+
+
+* VERSION 0: Rates created with total sessions 
+
+forvalues i=1/3 {
+sum total_sessions_2017_2018 if treat1==`i'
+local max_total_`i'=`r(max)'
+}
+
+gen ts_2017_2018_pk_only= total_sessions_2017_2018/`max_total_1' if pkonly==1
+gen ts_2017_2018_hv_only= total_sessions_2017_2018/`max_total_2' if hvonly==1
+gen ts_2017_2018_pk_hv= total_sessions_2017_2018/`max_total_3' if pk_hv==1
+
+replace ts_2017_2018_pk_only=0 if pkonly!=1
+replace ts_2017_2018_hv_only=0 if hvonly!=1
+replace ts_2017_2018_pk_hv=0 if pk_hv!=1
+
 
 
 *VERSION 1: Dummies created with the max. 
@@ -998,6 +1016,9 @@ gen inst_hvonly_p25=1 if total_months_2017_2018>=`p25_total_2'  & treat1==2
 replace  inst_hvonly_p25=0 if missing(inst_hvonly_p25)
 gen inst_hvpk_p25=1 if total_months_2017_2018>=`p25_total_3'  & treat1==3
 replace  inst_hvpk_p25=0 if missing(inst_hvpk_p25)
+
+
+
 
 
 
