@@ -338,7 +338,7 @@ use ECD_compiled.dta, clear
 
 
 *Keep only siblings and cousings (and all kids in control group)
-keep if proj_child!=1
+keep if (proj_child!=1  & treat1!=4) | treat1==4 
 *Keep only those added in year2 (only 50 siblings were added in year1)
 *keep if added_year2==1
 
