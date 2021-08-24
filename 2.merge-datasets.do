@@ -296,12 +296,12 @@ gen base_age_year=round(base_age_month/12)
 label variable base_age_month "Age 1st February, 2017 (Baseline survey) in months"
 label variable base_age_year "Age 1st February, 2017 (Baseline survey) in years"
 
-*Attrition 
-gen attrited_year1=1 if Project_continuation=="No" 
-replace attrited_year1=0 if Project_continuation=="Yes" 
-label define attrited_year1 1 "Attrited" 0 "Continued"
-label values attrited_year1 attrited_year1
-label var attrited_year1 "Attrited on year 1"
+*Attrition version 1
+gen attrited_year1_v1=1 if Project_continuation=="No" 
+replace attrited_year1_v1=0 if Project_continuation=="Yes" 
+label define attrited_year1_v1 1 "Attrited" 0 "Continued"
+label values attrited_year1_v1 attrited_year1_v1
+label var attrited_year1_v1 "Attrited on year 1"
 
 
 
@@ -740,6 +740,18 @@ order ln_household_income, after(household_income)
 order added_year2, after(treat1)
 
 
+* Attrition version 2 
+
+gen attrited_year1_v2=1 if  missing(mid_asq_gm)& missing(mid_asq_fm)& missing(mid_asq_comm)& missing(mid_asq_prbs)& missing(mid_asq_psc)& missing(mid_asq_overall)& missing(mid_num_overall)& missing(mid_lit_overall)& missing(mid_acskill)& missing(mid_os_overall)& missing(mid_ss_overall) 
+replace attrited_year1_v2=0 if missing(attrited_year1_v2)
+label define attrited_year1_v2 1 "Attrited" 0 "Continued"
+label values attrited_year1_v2 attrited_year1_v2 
+label var attrited_year1_v2 "Attrited on year 1"
+
+order attrited_year1_v2, after(attrited_year1_v1)
+
+
+
 *Variable to know if they have scores at baseline 
 local baseline acskill exfunction
 	foreach var of local baseline {
@@ -1039,6 +1051,21 @@ replace  inst_hvpk_p25=0 if missing(inst_hvpk_p25)
 save "$output/ECD_compiled.dta", replace
 erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
+
+
+
+*--------------------------------------------------------------------------------------------------------
+*					ATTRITION RATES 
+*
+*---------------------------------------------------------------------------------------------------------
+
+
+keep CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID attrited*
+
+collapse attrited*, by(VILLAGE_ID)
+
+export delimited "$output/attrition-by-village.csv", replace	//run the auto hotkeys script
+
 
 
 *** END *** 
