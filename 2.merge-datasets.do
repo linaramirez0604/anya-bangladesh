@@ -303,6 +303,9 @@ label define attrited_year1_v1 1 "Attrited" 0 "Continued"
 label values attrited_year1_v1 attrited_year1_v1
 label var attrited_year1_v1 "Attrited on year 1"
 
+egen total_children_village=count(CHILD_ID), by(VILLAGE_ID)
+egen attrited_year1_totalvillage_v1=total(attrited_year1_v1), by(VILLAGE_ID)
+gen attrited_year1_rate_v1=attrited_year1_totalvillage_v1/total_children_village
 
 
 
@@ -497,7 +500,7 @@ order mother*, after(father_education)
 label var b_date "Baseline date"
 label var base_date "Baseline date"
 
-order Project_continuation attrited_year1, after(CT)
+order Project_continuation attrited_year1*, after(CT)
 
 
 
@@ -742,13 +745,20 @@ order added_year2, after(treat1)
 
 * Attrition version 2 
 
+*Midline 
 gen attrited_year1_v2=1 if  missing(mid_asq_gm)& missing(mid_asq_fm)& missing(mid_asq_comm)& missing(mid_asq_prbs)& missing(mid_asq_psc)& missing(mid_asq_overall)& missing(mid_num_overall)& missing(mid_lit_overall)& missing(mid_acskill)& missing(mid_os_overall)& missing(mid_ss_overall) 
 replace attrited_year1_v2=0 if missing(attrited_year1_v2)
 label define attrited_year1_v2 1 "Attrited" 0 "Continued"
 label values attrited_year1_v2 attrited_year1_v2 
 label var attrited_year1_v2 "Attrited on year 1"
 
-order attrited_year1_v2, after(attrited_year1_v1)
+*Endline 
+
+gen attrited_year2=1 if  missing(end_asq_gm)& missing(end_asq_fm)& missing(end_asq_comm)& missing(end_asq_prbs)& missing(end_asq_psc)& missing(end_asq_overall)& missing(end_num_overall)& missing(end_lit_overall)& missing(end_acskill)& missing(end_os_overall)& missing(end_ss_overall) 
+replace attrited_year2=0 if missing(attrited_year2)
+label define attrited_year2 "Attrited" 0 "Continued"
+label values attrited_year2 attrited_year2
+label var attrited_year2 "Attrited on year 2"
 
 
 
@@ -1060,11 +1070,25 @@ erase "$output/temp.dta"
 *---------------------------------------------------------------------------------------------------------
 
 
-keep CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID attrited*
+
+use "$output/ECD_compiled.dta", clear 
+
+
+keep  VILLAGE_ID attrited*
 
 collapse attrited*, by(VILLAGE_ID)
 
-export delimited "$output/attrition-by-village.csv", replace	//run the auto hotkeys script
+
+keep VILLAGE_ID  attrited_year1_v2 attrited_year2 
+
+gen attrited_year1=attrited_year1_v2*100
+replace attrited_year2=attrited_year2*100
+
+keep  VILLAGE_ID attrited_year1_v1_1 attrited_year1_v1_2 attrited_year1_v2
+
+*attrited_year1_v1_1!=attrited_year1_v1_2 because in the first one is taking into account only those kids that have non missing data, whereas in the second the denominator is larger. 
+
+export delimited "$output/attrition-by-village.csv", replace	
 
 
 
