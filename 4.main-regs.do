@@ -21,11 +21,17 @@ REQUIREMENTS: Run 0.master.do to set paths correctly.
 *------------------------------------------------------------------------------- 
 
 	set scheme s2mono 
+	
+	*import excel "$input/full_child_list.xlsx", sheet("Sheet1") firstrow clear 
+	
+	*save "$output/ECD_compiled_v2", replace 
 
 
 	cd "$output"
+	
 
 	use ECD_compiled, clear  
+	
 	
 
 *-------------------------------------------------------------------------------
@@ -319,7 +325,6 @@ use ECD_compiled.dta, clear
 
 bysort RECORD_ID: gen number_members=_n
 egen max_members=max(number_members), by(RECORD_ID)
-br proj_child child_type if max_members==1
 tab proj_child if max_members==1
 tab child_type if max_members==1
 

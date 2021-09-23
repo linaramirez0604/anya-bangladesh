@@ -756,7 +756,7 @@ label var attrited_year1_v2 "Attrited on year 1"
 
 gen attrited_year2=1 if  missing(end_asq_gm)& missing(end_asq_fm)& missing(end_asq_comm)& missing(end_asq_prbs)& missing(end_asq_psc)& missing(end_asq_overall)& missing(end_num_overall)& missing(end_lit_overall)& missing(end_acskill)& missing(end_os_overall)& missing(end_ss_overall) 
 replace attrited_year2=0 if missing(attrited_year2)
-label define attrited_year2 "Attrited" 0 "Continued"
+label define attrited_year2 1 "Attrited" 0 "Continued"
 label values attrited_year2 attrited_year2
 label var attrited_year2 "Attrited on year 2"
 
@@ -1054,6 +1054,42 @@ replace  inst_hvonly_p25=0 if missing(inst_hvonly_p25)
 gen inst_hvpk_p25=1 if total_months_2017_2018>=`p25_total_3'  & treat1==3
 replace  inst_hvpk_p25=0 if missing(inst_hvpk_p25)
 
+save "$output/ECD_compiled.dta", replace
+
+
+
+
+**** ECD_compiled_v2 is the Dataset Sent by Tanvir on September 7 that fixes some mistakes on VILLAGE_ID2 FAMILY_ID2 RECORD_ID2
+cd "$output"
+use ECD_compiled_v2, clear 
+	keep CHILD_ID VILLAGE_ID FAMILY_ID RECORD_ID
+	rename (VILLAGE_ID FAMILY_ID RECORD_ID) (VILLAGE_ID2 FAMILY_ID2 RECORD_ID2)
+
+	save temp2.dta, replace 
+	
+	merge 1:m CHILD_ID using ECD_compiled.dta 
+	keep if _merge==3 
+	drop _merge 
+	
+	local vars "VILLAGE_ID FAMILY_ID RECORD_ID" 
+	foreach var of local vars {
+		replace `var'=`var'2 if `var'!=`var'2
+	}
+	
+	drop VILLAGE_ID2 FAMILY_ID2 RECORD_ID2
+	
+	erase temp2.dta 
+	
+	
+	/*If they only changed VILLAGE_ID FAMILY_ID RECORD_ID, why we are finding differences in other of our variables?  
+	use ECD_compiled, clear 
+	duplicates drop CHILD_ID, force 
+	cfout VILLAGE_ID FAMILY_ID RECORD_ID using ECD_compiled_v2, id(CHILD_ID)
+	cfout zend_exfunction zend_acskill zmid_acskill zbase_acskill zbase_exfunction zmid_exfunction using ECD_compiled_v2, id(CHILD_ID)
+	cfout base_asq_gm base_asq_fm base_asq_comm base_asq_prbs base_asq_psc base_asq_overall mid_asq_gm mid_asq_fm mid_asq_comm mid_asq_prbs mid_asq_psc mid_asq_overall end_asq_gm end_asq_fm using ECD_compiled_v2, id(CHILD_ID)
+	*/
+	
+
 
 
 
@@ -1084,7 +1120,7 @@ keep VILLAGE_ID  attrited_year1_v2 attrited_year2
 gen attrited_year1=attrited_year1_v2*100
 replace attrited_year2=attrited_year2*100
 
-keep  VILLAGE_ID attrited_year1_v1_1 attrited_year1_v1_2 attrited_year1_v2
+keep  VILLAGE_ID attrited_year1 attrited_year2 
 
 *attrited_year1_v1_1!=attrited_year1_v1_2 because in the first one is taking into account only those kids that have non missing data, whereas in the second the denominator is larger. 
 
