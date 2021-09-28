@@ -759,7 +759,7 @@ esttab   zmid_acskill_wo zmid_acskill_w zend_acskill_wo zend_acskill_w  zmid_exf
 
 
 *--------------------------------------------------------------------------------------------------------
-*					TABLE 11. EFFECTS BY MOTHER EDUCATION
+*					TABLE 12. EFFECTS BY MOTHER EDUCATION
 *					Interaction term of median x treatments 
 *---------------------------------------------------------------------------------------------------------
 

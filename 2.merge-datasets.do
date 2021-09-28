@@ -642,6 +642,60 @@ label var HVPK_10 "HV+PK -- 10"
 label var HVPK_20 "HV+PK -- 20"
 label var HVPK_30 "HV+PK -- 30"
 
+*ASQ 
+
+
+*Not standardized 
+
+label var base_asq_gm "Baseline GM"
+label var base_asq_fm "Baseline FM"
+label var base_asq_comm "Baseline COMM"
+label var base_asq_prbs "Baseline PRBS"
+label var base_asq_psc "Baseline PSC"
+label var base_asq_overall "Baseline ASQ"
+
+
+label var mid_asq_gm "End Y1 GM"
+label var mid_asq_fm "End Y1 FM"
+label var mid_asq_comm "End Y1 COMM"
+label var mid_asq_prbs "End Y1 PRBS"
+label var mid_asq_psc "End Y1 PSC"
+label var mid_asq_overall "End Y1 ASQ"
+
+
+label var end_asq_gm "End Y2 GM"
+label var end_asq_fm "End Y2 FM"
+label var end_asq_comm "End Y2 COMM"
+label var end_asq_prbs "End Y2 PRBS"
+label var end_asq_psc "End Y2 PSC"
+label var end_asq_overall "End Y2 ASQ"
+
+*Standardized 
+
+label var zbase_gm "Baseline GM"
+label var zbase_fm "Baseline FM"
+label var zbase_comm "Baseline COMM"
+label var zbase_prbs "Baseline PRBS"
+label var zbase_psc "Baseline PSC"
+label var zbase_overall "Baseline ASQ"
+
+
+label var zmid_gm "End Y1 GM"
+label var zmid_fm "End Y1 FM"
+label var zmid_comm "End Y1 COMM"
+label var zmid_prbs "End Y1 PRBS"
+label var zmid_psc "End Y1 PSC"
+label var zmid_overall "End Y1 ASQ"
+
+
+label var zend_gm "End Y2 GM"
+label var zend_fm "End Y2 FM"
+label var zend_comm "End Y2 COMM"
+label var zend_prbs "End Y2 PRBS"
+label var zend_psc "End Y2 PSC"
+label var zend_overall "End Y2 ASQ"
+
+
 
 
 tab treat1, gen(treatment)
@@ -1087,6 +1141,8 @@ use ECD_compiled_v2, clear
 	cfout VILLAGE_ID FAMILY_ID RECORD_ID using ECD_compiled_v2, id(CHILD_ID)
 	cfout zend_exfunction zend_acskill zmid_acskill zbase_acskill zbase_exfunction zmid_exfunction using ECD_compiled_v2, id(CHILD_ID)
 	cfout base_asq_gm base_asq_fm base_asq_comm base_asq_prbs base_asq_psc base_asq_overall mid_asq_gm mid_asq_fm mid_asq_comm mid_asq_prbs mid_asq_psc mid_asq_overall end_asq_gm end_asq_fm using ECD_compiled_v2, id(CHILD_ID)
+	
+	cfout proj_child child_treat_status using ECD_compiled_v2, id(CHILD_ID)
 	*/
 	
 
