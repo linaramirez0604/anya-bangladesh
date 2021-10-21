@@ -1146,11 +1146,43 @@ use ECD_compiled_v2, clear
 	*/
 	
 
+drop if missing(proj_child) & CHILD_ID==101261 & VILLAGE_ID==101 
 
-
-
+	
 
 save "$output/ECD_compiled.dta", replace
+
+	*New variable CT_actual has the actual project children (CT has both siblings and project children that were treated categorized as project children)
+
+	use "/Users/bfiuser/Dropbox/Chicago/UChicago/ECD_Data_documents_2020/Final Data_ALL rounds/Child informations.dta", clear 
+	keep VILLAGE_ID FAMILY_ID RECORD_ID CHILD_ID CT_actual
+	
+	save "$output/temp.dta", replace 
+
+	use "$output/ECD_compiled.dta", clear  
+	
+	merge 1:1 VILLAGE_ID FAMILY_ID RECORD_ID CHILD_ID using temp.dta 
+	drop if _merge==2 
+	replace CT_actual=CT if _merge==1
+	drop _merge 
+
+	
+	egen x=sum(proj_child), by(RECORD_ID)
+	
+	gen num_proj_child_recid=1 if x==1 
+	replace num_proj_child_recid=2 if x<1 
+	replace num_proj_child_recid=3 if x>1 
+	
+	label define num_proj_child_recid 1 "One proj_child" 2 "No proj_child" 3 "More than 1 proj_child"
+	label values num_proj_child_recid num_proj_child_recid 
+	
+	drop x 
+	
+	order CT_actual, after(CT)
+	order num_proj_child_recid, after(proj_child)
+
+save "$output/ECD_compiled.dta", replace
+
 erase "$output/Early childhood Development.dta"
 erase "$output/temp.dta"
 

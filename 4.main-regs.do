@@ -216,7 +216,8 @@ esttab   est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/simple_o
 	 **** WITH THE RATE  ****
 	
 	
- 
+ 	eststo clear 
+
  *Without controls 
  foreach outcome of local outcomes{
 	ivregress 2sls `outcome'  (ts_2017_2018_pk_only ts_2017_2018_hv_only ts_2017_2018_pk_hv=pkonly hvonly pk_hv), vce(cluster VILLAGE_ID)
@@ -319,16 +320,7 @@ esttab est1 est5 est2 est6 est3 est7 est4 est8, se(3) replace label b(3) keep($t
 *Fragment for tex 
 esttab est1 est5 est2 est6 est3 est7 est4 est8  using "$results/tables/reg3_spilloversv2.tex",  replace label starlevels(* 0.10 ** 0.05 *** 0.01) fragment tex se(3) b(3) keep($treatmentshv $treatmentshvpk) order($treatmentshv  $treatmentshvpk) constant nogaps stats(empty r_squared N, labels(" " "R-squared" "N") fmt(0 3 0))  indicate("Controls = ${controls}", labels("\checkmark" " ")) 
 
-***checking to see siblings***
 
-use ECD_compiled.dta, clear 
-
-bysort RECORD_ID: gen number_members=_n
-egen max_members=max(number_members), by(RECORD_ID)
-tab proj_child if max_members==1
-tab child_type if max_members==1
-
-***looks like there are 526 kids with record id 
 
 *-------------------------------------------------------------------------------
 *			TABLE 6. SPILLOVER EFFECTS - SIBLINGS AND COUSINS

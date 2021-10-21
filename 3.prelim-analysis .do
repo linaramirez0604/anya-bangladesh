@@ -77,7 +77,31 @@ esttab homevisit_treat homevisit_untreated both_treated both_untreated using "$r
 
 
 * To count 
- count if HV_20==1 & child_treat_status==4 // In HV village but doesn't get HV. 
+
+ use ECD_compiled, clear  
+ keep if proj_child==1
+ count if HV_10==1 & child_treat_status==4 // In HV village but doesn't get HV. 
+ count if HV_20==1 & child_treat_status==4  
+ count if HV_30==1 & child_treat_status==4  
+ 
+ count if HV_10==1 & child_treat_status!=4 
+ count if HV_20==1 & child_treat_status!=4  
+ count if HV_30==1 & child_treat_status!=4  
+ 
+ count if HVPK_10==1 & child_treat_status==8 // In HV village but doesn't get HV. 
+ count if HVPK_20==1 & child_treat_status==8  
+ count if HVPK_30==1 & child_treat_status==8  
+ 
+ count if HVPK_10==1 & child_treat_status!=8 
+ count if HVPK_20==1 & child_treat_status!=8  
+ count if HVPK_30==1 & child_treat_status!=8  
+ 
+ 
+ 
+ 
+ 
+ count if HV_10==1 | HV_20==1 | HV_30==1
+ count if HVPK_10==1 | HVPK_20==1 | HVPK_30==1
 
  
  
