@@ -925,7 +925,7 @@ esttab est1 est5 est2 est6 est3 est7 est4 est8 using "$results/tables/siblings_s
 
 *-------------------------------------------------------------------------------------------------------
 *			TABLE 12. SPILLOVER EFFECTS - SIBLINGS AND COUSINS - ALTERNATIVE SPECIFICATIONS - V3
-*	Dropping those that are in families with no project child 
+*	Dropping those that are in families with no project child or more than one 
 *	Keeping only kids added on year 2, assigning 0 to missing values in midline scores 
 *  HV and HVPK are siblings of treated kids and are compared to siblings of untreated kids and control 
 *  PK are siblings of treated kids and are only compared to control kids. 
@@ -964,7 +964,7 @@ replace group_age=3 if base_age_year>5
 label define group_age 1 "0-2" 2 "3-5" 3 "6-8"
 label values group_age group_age 
 
-
+save temp2.dta, replace 
  
 
 	
@@ -1148,6 +1148,66 @@ esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskil
 
 
 esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskill3 zend_exfunction3 using "$results/tables/siblings_reg_spillovers_end_age.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments )  constant nogaps mgroups( "0-2 years" "3-5 years" "6-8 years", pattern(1 0 1 0 1 0) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span}))
+
+
+ 
+ 
+ 
+ 
+*-------------------------------------------------------------------------------------------------------
+*			TABLE 15. SIBLINGS SPILLOVERS BY AGE 
+*
+*	Keeping only kids added on year 2, assigning 0 to missing values in midline scores 
+*  HV and HVPK are siblings of treated kids and are compared to siblings of untreated kids and control 
+*  PK are siblings of treated kids and are only compared to control kids. 
+*---------------------------------------------------------------------------------------------------------
+
+
+
+use temp2.dta, clear 
+
+
+eststo clear 
+global controls  Gender base_age_year ln_household_income  father_educ_2 father_educ_3 father_educ_4 father_educ_5 father_educ_6 mother_educ_2 mother_educ_3 mother_educ_4 mother_educ_5 mother_educ_6
+global treatments siblings_PK siblings_HV siblings_HVPK
+local outcomes zmid_acskill zmid_exfunction  zend_acskill zend_exfunction
+
+
+	foreach outcome of local outcomes{
+		forvalues i=1/3{
+		reg `outcome' $treatments `controls' if group_age==`i', cluster(VILLAGE_ID)
+		eststo `outcome'`i'
+		estadd scalar r_squared = e(r2)
+		}
+	
+}
+
+
+
+* See how it looks in Stata:
+
+esttab zmid_acskill1 zmid_exfunction1 zmid_acskill2 zmid_exfunction2 zmid_acskill3 zmid_exfunction3, se(3) replace label b(3) keep($treatments ) constant nogaps 
+
+	  
+*Fragment for tex 
+
+
+
+esttab zmid_acskill1 zmid_exfunction1 zmid_acskill2 zmid_exfunction2 zmid_acskill3 zmid_exfunction3 using "$results/tables/siblings_reg_spillovers_mid_age_altspec_v3.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments )  constant nogaps mgroups( "0-2 years" "3-5 years" "6-8 years", pattern(1 0 1 0 1 0) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span}))
+
+
+	
+	
+* See how it looks in Stata:
+
+esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskill3 zend_exfunction3, se(3) replace label b(3) keep($treatments ) constant nogaps
+
+  
+*Fragment for tex 
+
+
+
+esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskill3 zend_exfunction3 using "$results/tables/siblings_reg_spillovers_end_age_altspec_v3.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments )  constant nogaps mgroups( "0-2 years" "3-5 years" "6-8 years", pattern(1 0 1 0 1 0) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span}))
 
 
  
