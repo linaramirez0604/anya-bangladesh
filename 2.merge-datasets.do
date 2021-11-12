@@ -1180,6 +1180,9 @@ save "$output/ECD_compiled.dta", replace
 	
 	order CT_actual, after(CT)
 	order num_proj_child_recid, after(proj_child)
+	
+	*fix typo 
+	replace HVPK_20=1 if CHILD_ID==207411
 
 save "$output/ECD_compiled.dta", replace
 
