@@ -1210,7 +1210,49 @@ esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskil
 esttab zend_acskill1 zend_exfunction1 zend_acskill2 zend_exfunction2 zend_acskill3 zend_exfunction3 using "$results/tables/siblings_reg_spillovers_end_age_altspec_v3.tex" , label fragment tex replace starlevels(* 0.10 ** 0.05 *** 0.01)  se(3) b(3) keep($treatments )  constant nogaps mgroups( "0-2 years" "3-5 years" "6-8 years", pattern(1 0 1 0 1 0) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span}))
 
 
+
+
+
  
+*-------------------------------------------------------------------------------------------------------
+*			SCATTERPLOT - AGE - BASELINE SCORE 
+*---------------------------------------------------------------------------------------------------------
+
+
+
+use ECD_compiled.dta, clear 
+
+
+collapse base_acskill mid_acskill end_acskill base_exfunction mid_exfunction end_exfunction, by(base_age_year)
+
+drop if missing(base_age_year)
+
+label var base_acskill "Baseline"
+label var mid_acskill "End Y1"
+label var end_acskill "End Y2"
+
+label var base_exfunction "Baseline"
+label var mid_exfunction "End Y1"
+label var end_exfunction "End Y2"
+
+
+
+twoway (scatter base_acskill base_age_year, msymbol(smcircle) mcolor(midblue)) (scatter mid_acskill base_age_year, msymbol(smcircle) mcolor(dkorange)) (scatter end_acskill base_age_year, msymbol(smcircle) mcolor(gs9)), xtitle("Age at baseline") ytitle("Test Score") xlabel(, labgap(.05in)) ylabel(,   labgap(.1in)   angle(horizontal)) legend(rows(1) colgap(0.1in)  region(col(white))) plotregion(fcolor(white)) graphregion(fcolor(white)) title("Academic Skills", position(11))
+
+graph save "$results/graphs/scatter_acskills_age.gph", replace 
+
+
+
+twoway (scatter base_exfunction base_age_year, msymbol(smcircle) mcolor(midblue)) (scatter mid_exfunction base_age_year, msymbol(smcircle) mcolor(dkorange)) (scatter end_exfunction base_age_year, msymbol(smcircle) mcolor(gs9)), xtitle("Age at baseline") ytitle("Test Score") xlabel(, labgap(.05in)) ylabel(,   labgap(.1in)   angle(horizontal)) legend(rows(1) colgap(0.1in)  region(col(white))) plotregion(fcolor(white)) graphregion(fcolor(white)) title("Executive Function", position(11))
+
+ 
+graph save "$results/graphs/scatter_exfunctions_age.gph", replace 
+
+grc1leg2 "$results/graphs/scatter_acskills_age.gph" "$results/graphs/scatter_exfunctions_age.gph", plotregion(fcolor(white)) graphregion(fcolor(white)) 
+
+
+graph export "$results/graphs/scatter_score_age.pdf"
+
 
 
 
