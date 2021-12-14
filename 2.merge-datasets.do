@@ -461,7 +461,9 @@ drop _merge
 *tab child_treat_status proj_child
 
 replace proj_child=1 if CT==1 & missing(proj_child) & (child_treat_status==4 | child_treat_status==8 | child_treat_status==9 | child_treat_status==10 )
-replace proj_child=0 if missing(proj_child) 
+*replace proj_child=0 if missing(proj_child) & CT>1 
+replace proj_child=0 if missing(proj_child)
+
 
 order proj_child, after(CHILD_ID) 
 label define proj_child 1 "Proj Child" 0 "Sibiling/Cousin"
@@ -815,6 +817,12 @@ label values attrited_year2 attrited_year2
 label var attrited_year2 "Attrited on year 2"
 
 
+*Attrition endline version 2: 
+gen attrited_year2_v2=1 if attrited_year1_v2==0 & missing(end_asq_gm)& missing(end_asq_fm)& missing(end_asq_comm)& missing(end_asq_prbs)& missing(end_asq_psc)& missing(end_asq_overall)& missing(end_num_overall)& missing(end_lit_overall)& missing(end_acskill)& missing(end_os_overall)& missing(end_ss_overall) 
+replace attrited_year2_v2=0 if missing(attrited_year2_v2) & attrited_year1_v2==0 
+label values attrited_year2_v2 attrited_year2
+
+
 
 *Variable to know if they have scores at baseline 
 local baseline acskill exfunction
@@ -1165,24 +1173,50 @@ save "$output/ECD_compiled.dta", replace
 	drop if _merge==2 
 	replace CT_actual=CT if _merge==1
 	drop _merge 
-
 	
+	gen CT_actual_d=1 if CT_actual==1
+	replace CT_actual_d=0 if CT_actual!=1
+	
+	gen CT_d=1 if CT==1
+	replace CT_d=0 if CT!=1
+	
+	*tab CT_actual proj_child --> Correct project child 
+	replace proj_child=1 if CT_actual_d==1 & proj_child==0 
+
+	egen y=sum(CT_actual_d), by(RECORD_ID)
 	egen x=sum(proj_child), by(RECORD_ID)
 	
 	gen num_proj_child_recid=1 if x==1 
 	replace num_proj_child_recid=2 if x<1 
 	replace num_proj_child_recid=3 if x>1 
 	
+
+	
 	label define num_proj_child_recid 1 "One proj_child" 2 "No proj_child" 3 "More than 1 proj_child"
 	label values num_proj_child_recid num_proj_child_recid 
 	
-	drop x 
+	gen num_ct_actual_d_recid=1 if y==1 
+	replace num_ct_actual_d_recid=2 if y<1 
+	replace num_ct_actual_d_recid=3 if y>1 
 	
-	order CT_actual, after(CT)
+	label values num_ct_actual_d_recid num_proj_child_recid 
+
+	
+	drop x y 
+	
+	
+	
+	order CT_actual proj_child, after(CT)
 	order num_proj_child_recid, after(proj_child)
+	order num_ct_actual_d_recid, after(num_proj_child_recid)
+	
+	
+	replace num_proj_child_recid=1 if num_proj_child_recid==2 & CT_actual==1
 	
 	*fix typo 
 	replace HVPK_20=1 if CHILD_ID==207411
+	replace child_treat_status=8 if CHILD_ID==207411
+	replace treat1=3 if CHILD_ID==207411
 
 save "$output/ECD_compiled.dta", replace
 
